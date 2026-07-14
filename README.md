@@ -7,6 +7,7 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 - `prd`: PRD routing and maintenance rules for BIC Production PRDs and Project PRDs.
 - `bump-version`: Version bump SOP for uv-managed repositories.
 - `raise-issue`: SOP for raising a GitHub issue with full metadata (assignee, labels, type, project, milestone), all discovered live from the target repo.
+- `wrap-up`: SOP for closing a work session — reconcile the active Trellis task, then report a short heads-up + to-do list.
 
 ## Install
 
