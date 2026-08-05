@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Interview Result"
+  short_description: "Turn hiring evidence into a verified Feishu result"
+  default_prompt: "Use $generate-interview-result to evaluate a candidate from a resume, JD, and interview summary and deliver the result in Feishu."

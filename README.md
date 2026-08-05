@@ -10,6 +10,7 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 - `raise-pr`: SOP for raising/opening a PR — full local gate (pre-commit + CI mirror) all green before push, then monitor the PR's CI and loop-fix until green.
 - `wrap-up`: SOP for closing a work session — reconcile the active Trellis task, then report a short heads-up + to-do list.
 - `deploy-to-aws`: SOP for redeploying the latest BIC main-branch code to the aws-test cloud box via Mac-relay — survey stale services, verify builds/whitelist prerequisites, report the plan, wait for the user's go, deploy, report tags/ports/URLs/rollback handles.
+- `generate-interview-result`: Generate an evidence-based hiring decision from a resume, JD, and interview summary, then safely copy, fill, and verify the Feishu result document for HR.
 
 ## Install
 
