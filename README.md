@@ -12,6 +12,7 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 - `wrap-up`: SOP for closing a work session — reconcile the active Trellis task, then report a short heads-up + to-do list.
 - `deploy-to-aws`: SOP for redeploying the latest BIC main-branch code to the aws-test cloud box via Mac-relay — survey stale services, verify builds/whitelist prerequisites, report the plan, wait for the user's go, deploy, report tags/ports/URLs/rollback handles.
 - `generate-interview-result`: Generate an evidence-based hiring decision from a resume, JD, and interview summary, then safely copy, fill, and verify the Feishu result document for HR.
+- `test-lcms`: Run the BIC TLC → CC → Analyze LCMS scenario through the real Portal with CDP and Phoenix evidence — reset lab demo and agent test per attempt, drive parameters and dispatch, and verify Analyze execution through to every expected vial report.
 
 ## Install
 
