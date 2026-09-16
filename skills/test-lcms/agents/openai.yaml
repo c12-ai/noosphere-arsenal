@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test LCMS"
+  short_description: "Test BIC LCMS flow with CDP and Phoenix"
+  default_prompt: "Use $test-lcms to run the BIC TLC to CC to Analyze LCMS scenario on the bench I name, resetting lab demo and agent test first, and stop at Analyze execution completion."
