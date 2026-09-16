@@ -4,6 +4,7 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 
 ## Skills
 
+- `draft-release-notes`: Draft evidence-based BIC release notes in English, Simplified Chinese, or both, with audience-specific product language and full change links.
 - `prd`: PRD routing and maintenance rules for BIC Production PRDs and Project PRDs.
 - `bump-version`: PR version policy and source-version SOP for uv/Python and package.json/Node repositories.
 - `raise-issue`: SOP for raising a GitHub issue with full metadata (assignee, labels, type, project, milestone), all discovered live from the target repo.

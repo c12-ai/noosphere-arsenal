@@ -1,0 +1,4 @@
+interface:
+  display_name: "BIC Release Notes"
+  short_description: "Draft evidence-based BIC release notes"
+  default_prompt: "Use $draft-release-notes to draft audience-ready BIC release notes in English, Simplified Chinese, or both for the release boundary I provide."
