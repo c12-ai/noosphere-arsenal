@@ -97,14 +97,35 @@ Mind LCMS response.
    renders as `m/z <value> · purity <n>%`, `confidence <raw score> · <adduct>`,
    `Mind conclusion: <conclusion>`, then the warning list. **Confidence is the raw score
    (e.g. 17.106569989516203), not a 0–1 probability** — report it as shown. The ROLE cell is
-   an enabled `<select>`. A `Report PDF` link appears on the row once the page has hydrated
-   from a snapshot; the live SSE events carry no link, so it is absent until the first
-   reload — that is expected, not a missing report.
-2. Confirm the backend agrees: exactly one `analysis_sub_result_analyzed` and one
+   an enabled `<select>`, and the FILTER VIAL cell carries a **Preview report** control
+   (`lcms-report-link-<filter_vial_id>`) — present as soon as that vial has a durable
+   receipt, with no reload needed.
+2. **Preview the original report.** Click **Preview report**. It is a `<button>`, not a
+   link: it calls `GET /sessions/{sid}/trials/{tid}/analysis/reports/<filter_vial_id>`,
+   which 302s to a presigned object URL carrying
+   `response-content-type=application/pdf` and
+   `response-content-disposition=inline; filename="<filter_vial_id>.pdf"`. Assert:
+   - a NEW browser tab opens, and its `document.contentType` is `application/pdf` —
+     Chrome renders the report inline in its own PDF viewer, not a download prompt and
+     not a blank page. The tab title is the PDF's internal title, and the viewer shows
+     the page count and thumbnail rail;
+   - the viewer's toolbar offers download. Chrome isolates the viewer UI, so the control
+     is not in the page DOM — it lives in the `chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/`
+     iframe, which CDP lists as its own target. Attach to that target and click the
+     `Download` control (`CR-ICON-BUTTON#save`) after setting
+     `Browser.setDownloadBehavior`;
+   - the saved file is `<filter_vial_id>.pdf` and byte-identical to what Lab stored —
+     compare its size and checksum against the object behind `report_collection.reports[].report_ref`
+     (MinIO's ETag is the MD5).
+   Redact `X-Amz-Signature` from any URL you keep as evidence.
+   Negative case: the control is absent on a vial row with no durable receipt. This
+   scenario collects one vial and always receives its report, so there is normally no
+   such row — say so rather than inventing one.
+3. Confirm the backend agrees: exactly one `analysis_sub_result_analyzed` and one
    `analysis_processing_updated` in session history per vial, one `succeeded` row in
    `analysis_work_items`, and `trials.analysis` holding the Mind result. Card text alone
    is not evidence, and neither is the DB alone.
-3. **Edit the role through the row's `<select>`** (`lcms-role-select-<filter_vial_id>`;
+4. **Edit the role through the row's `<select>`** (`lcms-role-select-<filter_vial_id>`;
    Product / Waste / Tentative). The save is immediate — no separate save button. Each
    change appends one `analysis_sub_result_edited`. Then **reload the page, still before
    Confirm**, and assert the row survives: the card still reads `1/1 vials analyzed ·
@@ -114,10 +135,10 @@ Mind LCMS response.
    holding `processing` (one settled entry per vial with `can_edit: true`), `results` and
    `raw_reports` (with a presigned `report_download_url`). Leave the role at the value the
    next step should act on: **Product** is what seeds FP.
-4. Manual completion after a settled failure was **not exercised** on this bench — the
+5. Manual completion after a settled failure was **not exercised** on this bench — the
    mock Mind always succeeds, so nothing produced a `failed` / `manual_result_required`
    row. Treat it as untested; do not claim it works.
-5. **One Confirm, no Reject.** As Analyze terminalizes, the backend mints a pending
+6. **One Confirm, no Reject.** As Analyze terminalizes, the backend mints a pending
    `RESULT_REVIEW` decision and announces it with a `form_requested`
    (`confirm_kind=result_review`, `original_action.specialist_kind="analyze"`,
    `turn_id="analyze-result-review"`). The card's single **Accept result** control is
@@ -127,7 +148,7 @@ Mind LCMS response.
    session history. If the control is missing, that is a regression of the
    2026-09-18 fix (`1b1985c6`): record it with the event tail and stop — do not confirm
    over the API.
-6. **FP landing checks, then stop.** After Accept the cursor moves to the Fraction
+7. **FP landing checks, then stop.** After Accept the cursor moves to the Fraction
    Collection job. The workspace does not auto-open it: click the **Task** lifecycle tab,
    then the **Fraction Collection** specialist tab. Verify, without dispatching:
    - the upper **upstream evidence** panel carries the accepted CC run — the same peak
@@ -142,9 +163,10 @@ Mind LCMS response.
    Stop here. Do not press Prepare materials, validate FP readiness, or dispatch FP. The FP
    trial reads `execution_status=dispatched` on a seeded form; the proof that nothing was
    sent is an empty `lab_task_id` and no `fraction_pool` row in `labrun_db.tasks`.
-7. **Post-Confirm lock.** Reload once more and check the row's ROLE cell is now a read-only
-   badge — no `<select>`, no Accept button — while the evidence and the `Report PDF` link
-   stay. That lock is correct behaviour, not a regression of the reload fix.
+8. **Post-Confirm lock.** Reload once more and check the row's ROLE cell is now a read-only
+   badge — no `<select>`, no Accept button — while the Mind evidence and the **Preview
+   report** control stay. That lock is correct behaviour, not a regression of the reload
+   fix, and the report stays previewable after Confirm.
 
 ## UI mechanics verified on aws-test, 2026-09-16
 
@@ -198,7 +220,7 @@ An idle precheck can race the robot's stale-heartbeat cutoff. If Lab rejects dis
 
 One restart plus one same-step redispatch is the default recovery for this error. If it still fails or the normal UI cannot redispatch, preserve the evidence and report the blocker rather than looping or bypassing the UI. This recovery was verified on 2026-09-15: CC changed from a no-idle rejection to running after mock restart and a fresh idle heartbeat, retaining the same CC trial and sample cartridge.
 
-Report a short outcome: the last verified step; Analyze parameter, dispatch, running, and execution-finished results; report coverage; terminal reload behavior; the per-vial result card and its Mind evidence; the role edits and their persistence across a pre-Confirm reload; whether the Confirm control was reachable in the UI; and the FP landing checks. State that FP was opened but **not dispatched**. Link the CDP/Phoenix evidence. A later successful attempt does not erase earlier failures, and this test does not authorize code fixes, configuration rewrites, or issue creation.
+Report a short outcome: the last verified step; Analyze parameter, dispatch, running, and execution-finished results; report coverage; terminal reload behavior; the per-vial result card and its Mind evidence; the **Preview report** outcome (new tab opened, PDF rendered inline, downloaded filename and byte count against the Lab-stored object); the role edits and their persistence across a pre-Confirm reload; whether the Confirm control was reachable in the UI; and the FP landing checks. State that FP was opened but **not dispatched**. Link the CDP/Phoenix evidence, with `X-Amz-Signature` redacted from any presigned URL. A later successful attempt does not erase earlier failures, and this test does not authorize code fixes, configuration rewrites, or issue creation.
 
 ### Result-stage history — two fixed defects worth recognising
 
