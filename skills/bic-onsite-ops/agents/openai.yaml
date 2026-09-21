@@ -1,0 +1,4 @@
+interface:
+  display_name: "BIC 现场运维"
+  short_description: "BIC 现场故障诊断、运维处理、LCMS 重连与经验记录"
+  default_prompt: "使用 $bic-onsite-ops 诊断并处理 BIC 现场问题，验证结果后记录本次经验。"

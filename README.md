@@ -4,6 +4,8 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 
 ## Skills
 
+- `bic-onsite-ops`: BIC onsite diagnosis, evidence-led LCMS recovery, provider boundaries, and paired Lab demo / Agent test resets.
+
 - `draft-release-notes`: Draft evidence-based BIC release notes in English, Simplified Chinese, or both, with audience-specific product language and full change links.
 - `prd`: PRD routing and maintenance rules for BIC Production PRDs and Project PRDs.
 - `bump-version`: PR version policy and source-version SOP for uv/Python and package.json/Node repositories.
@@ -36,4 +38,10 @@ npx skills experimental_install
 
 ```bash
 npx skills update
+```
+
+Install BIC onsite operations globally for Claude Code and Codex:
+
+```bash
+npx skills add c12-ai/noosphere-arsenal --skill bic-onsite-ops --global --agent claude-code codex --yes
 ```
