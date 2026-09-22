@@ -37,7 +37,10 @@ the Mac; do not copy it to the jump host or into this repository.
    Git, screenshots, or PRs. The API key is not the monitor token or SSH password.
 2. Check `GET /v1/device/status` with `X-API-Key`. Proceed only with `state=idle`
    and `current_execution_id=null`. An idle API does not establish that desktop
-   capture is working. Do not use the controller's operations/recovery endpoints.
+   capture is working. When the device is not idle, clear it first with the
+   MIND-owned procedure in
+   [Clear a non-idle device before reconnecting](#clear-a-non-idle-device-before-reconnecting).
+   Use no other controller operations endpoint.
 3. Check one authenticated monitor JPEG and inspect the picture. HTTP 200 plus a
    valid JPEG can still mean a completely black framebuffer. An unauthorized
    request returning 401 is an authentication problem, not an RDP diagnosis.
@@ -62,6 +65,74 @@ The deployed script uses the container's existing `LCMS_RDP_*` settings. It
 terminates residual `xfreerdp` processes and starts one replacement on the
 existing display, normally `:99`. It does not restart Python/API, YOLO, Xvfb,
 other services, or the container, and it does not change credentials.
+
+## Clear a non-idle device before reconnecting
+
+Procedure supplied by MIND colleagues through Drake on 2026-09-22. MIND maintains
+the controller service, so on anything concerning it they are the authority and
+this procedure governs. Drake confirmed on 2026-09-22 that it overrides the
+earlier BIC-side rules against using the controller's recovery endpoint and
+against restarting the controller container. Where an older note in this skill
+disagrees with MIND, MIND wins; do not average the two or preserve the old rule
+as a parallel option.
+
+The limits below come from MIND as part of the same procedure and still apply:
+no `docker compose down`, no changes to other containers, no edits to
+`lcms.4080.env`, and no hand-editing of the controller's SQLite database.
+
+Read `GET /v1/device/status` first and pick the path from its actual `state`.
+
+### Path A — `error` with no active execution (preferred)
+
+```bash
+curl -sS -H "X-API-Key: $LCMS_API_KEY" http://127.0.0.1:18000/v1/device/status
+# when state=error and current_execution_id=null:
+curl -sS -X POST -H "X-API-Key: $LCMS_API_KEY" http://127.0.0.1:18000/v1/device/recover
+```
+
+Run these on the controller host, or against a local tunnel to port 18000.
+
+### Path B — `working` with a stuck execution
+
+1. Confirm it is genuinely stuck: the execution's events show no terminal state
+   for a long period, and `workflow_event_index` stays in the observation segment.
+2. Do not call `POST /v1/device/recover` first. While an execution holds the
+   device lock it returns `409 device_busy`, and repeating it changes nothing.
+   Do not work around it by editing the SQLite database.
+3. Run only:
+
+   ```bash
+   docker restart mind-lcms-control
+   ```
+
+4. Wait for the container's health to report ok, then `POST /v1/device/recover`,
+   then confirm `state=idle` with `current_execution_id=null`.
+
+Restarting the controller kills the RDP session and the Python/Xvfb processes
+with it, so the protected-PID comparison in this runbook applies only across a
+reconnect, not across an authorized Path B restart. Re-run the idle and operator
+checks afterwards, then reconnect and verify a fresh desktop frame.
+
+### Controller API key source
+
+MIND keeps the key on the 4080 host at `~/mind-lcms-control/config/lcms.4080.env`,
+field `LCMS_API_KEY`. Read it into the calling shell or program; do not print or
+copy its value into documentation, logs, screenshots, or PRs. The BIC-side copy
+of the same key is described in [credentials.md](credentials.md).
+
+### Access route — use BIC's own
+
+Drake's ruling, 2026-09-22: BIC shares a different access route with MIND, so
+use the BIC route in the table above — wired `ssh -J orin` or Tailscale
+`ssh -J orin-tel` to `robot-003@192.168.12.104`, with the Mac identity. Verified
+the same day: direct `http://192.168.12.104:18000` from the Mac on the onsite
+wired LAN returned HTTP 200, and the ProxyJump SSH authenticated.
+
+MIND's own instructions name their jump host and state that a Mac cannot reach
+`.104` directly. That describes their identity and network, not ours. Do not
+switch to their jump host, and do not treat their note as evidence that the BIC
+route is broken. This route choice is BIC-side access only; it does not weaken
+MIND's authority over the controller procedure above.
 
 ## Run the approved recovery once
 

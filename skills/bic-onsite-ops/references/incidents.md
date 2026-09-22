@@ -16,6 +16,7 @@
 | DEVICE-001 | 2026-09-20 | Device 切换 Mind 时 Compose 未传入连接配置 | Mind 启动、控制端空闲及 Lab 心跳已验证；未下发实验 | [Provider 配置](operations.md) |
 | OPS-003 | 2026-09-20 | Mac 的 `DRY=1` 未传给 direct runner | 已确认，尚未修复；不可作为只读预检使用 | [运维处理](operations.md) |
 | CC-001 | 2026-09-21 | CC repeat confirmation returns 409 after success | Saved result and Analyze progression verified; second-request trigger unverified | [Operations](operations.md#cc-result-confirmation-popup) |
+| LCMS-004 | 2026-09-22 | 黑屏且容器内无 `xfreerdp`；设备被卡住的 execution 占用 | 桌面恢复已验证；设备未清除，MIND 的 Path B 未执行 | [清除非 idle 设备](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting) |
 
 ## LCMS-001：黑屏、SSH 身份与重连误报
 
@@ -213,3 +214,66 @@ Routine reset backups are unnecessary; he will explicitly signal when real data
 requires protection. Updated the default reset procedure and session lessons.
 The already-created temporary snapshots were not deleted by this documentation
 change. Physical execution checks remain applicable. No additional live reset.
+
+## LCMS-004: Desktop recovered, device still held by a stuck execution (2026-09-22)
+
+Status: **partially verified** — RDP recovery verified; the device was not returned to idle.
+
+- Site/target: BIC onsite, wired entry `ssh orin`; controller `robot-003@192.168.12.104`,
+  container `mind-lcms-control` (up 12 h at the time). Request: reconnect the LCMS RDP
+  session, after first checking device status and resetting it if it sat in an error state,
+  without disturbing any running service container.
+- Read-only evidence before any mutation:
+  - `GET /v1/device/status` → `state=working`, `current_execution_id=0e92f04a-…5347f7`,
+    `error=null`. The requested "error state" condition was **not** met; the device was busy.
+  - `GET /v1/executions/<id>/events` → one `running` event, `terminal=false`, unchanged
+    across ~50 minutes and a further 2-minute poll.
+  - `bic-device-service` logs: the execution was submitted at 10:03:40 and the service polled
+    its events once per second, so a BIC Analyze task was waiting on it.
+  - Monitor frame: HTTP 200, 33,268-byte black JPEG — the known black-frame signature.
+  - `docker top mind-lcms-control -eo pid,comm,etime`: python 3545697 and Xvfb 3545812 present,
+    **no `xfreerdp` at all** — the RDP session had already died on its own.
+  - TCP probe from the controller container to `LCMS_RDP_HOST:3389` → reachable, so the Windows
+    PC was powered on. This is **not** the LCMS-003 power-off case.
+- Authorized actions and results:
+  1. `POST /v1/device/recover` → `409 device_busy`. The endpoint recovers an errored device and
+     will not preempt an execution holding the lock. This matches MIND's Path B note.
+  2. One run of `/home/robot-003/reconnect-lcms-rdp.sh` (SHA-256 `a486acf9…d8ea0`, unchanged),
+     authorized by Drake despite the non-idle state because no live RDP session existed to disturb.
+     It exited 1 with `xfreerdp did not stay up` — the known PID-field checker defect, not a real
+     failure; its log tail showed a fresh connection past the self-signed-certificate warnings.
+  3. Verified after: exactly one `xfreerdp` (PID 3810169); python 3545697 and Xvfb 3545812
+     unchanged; all controller-host containers unchanged; monitor frame HTTP 200 at 322,537 bytes
+     showing a usable Windows desktop with Agilent/OpenLab icons and a live clock.
+- Unresolved: restoring the desktop did **not** unstick the execution. Status stayed `working` on
+  the same execution with no new events, and a repeat `recover` still returned 409. No cancel exists
+  on the controller API or on `bic-device-service`. MIND's Path B
+  (`docker restart mind-lcms-control` → health ok → `recover` → confirm idle) was supplied after
+  this session and was not executed here; it is the next step when this recurs.
+- Carry-forward facts: a black frame plus a reachable Windows PC plus zero `xfreerdp` means the
+  session died by itself, and a stuck `working` execution does not resume merely because the
+  desktop returns. Until the device is cleared it accepts no new LCMS execution and the waiting
+  BIC Analyze task cannot complete.
+
+## MIND-supplied device reset procedure (2026-09-22, supplied by Drake, unverified onsite)
+
+MIND colleagues supplied the two-path procedure now recorded in
+[Clear a non-idle device before reconnecting](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting):
+Path A `recover` for `error` with no execution, Path B `docker restart mind-lcms-control` for a
+stuck `working` execution, then `recover` and confirm idle. MIND maintains the controller service,
+so Drake ruled on 2026-09-22 that they are the authority on it: this procedure overrides the
+previous BIC-side rules against the recovery endpoint and against restarting the controller
+container, and those older rules are not retained as parallel options. The limits MIND gave with
+the same procedure still hold — no `docker compose down`, no other containers, no `lcms.4080.env`
+edits, no hand-editing the controller SQLite.
+
+Access route is the one exception, by Drake's ruling the same day: BIC shares a different route
+with MIND, so keep using the BIC route (`-J orin` wired, `-J orin-tel` over Tailscale). MIND's
+jump host and their "a Mac cannot reach `.104` directly" note describe their identity and network;
+on 2026-09-22 the BIC route worked (direct `http://192.168.12.104:18000` returned HTTP 200 and the
+ProxyJump SSH authenticated). This is an access-path choice only and does not reduce MIND's
+authority over the controller procedure.
+
+Path B was not executed onsite in this session, so it stays `unverified` until a live run confirms
+it. Note that it restarts Python/Xvfb, so this runbook's protected-PID comparison applies to a
+reconnect, not to an authorized Path B restart.
