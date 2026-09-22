@@ -25,7 +25,7 @@ Drake 要求“reset / 重置”时，默认按当前明确的目标环境执行
 1. **确定目标。** 从当前 live registry 解析 site、服务和 SSH 目标，再连接；不要把历史环境名或旧 IP 当永久 allowlist。需要鉴权时按 [`references/credentials.md`](references/credentials.md) 读取本机私有凭据，不将其复制进 Skill 或日志。部署、更新或命名服务发布转给 `bic-remote-deploy`（从已解析 BIC 工作区加载；未安装时不要自行替代部署流程）；完整 TLC→CC→Analyze→Fraction Collection 流程转给 `test-lcms`（按名称加载已安装 skill；缺少时报告依赖缺失；仅在用户授权安装后从 Noosphere Arsenal 安装）。
 2. **先读现状。** 读取当前 provider、容器、健康状态和相关日志；不要依据历史推断 fake/MIND。Agent 的 `MIND_MOCK_MODE` 与 Device 的 `DEVICE_PROVIDER=fake|mind` 是独立开关。
 3. **保留只读证据。** 先做最小范围的状态、日志、进程和 UI/帧检查，并把证据与已知案例匹配。HTTP 200、进程存在或 PID 存在都不能单独证明恢复成功。
-4. **再做授权变更。** 只执行用户已明确授权且范围明确的 mutation；已有明确授权无需重复询问。现场诊断默认不提交物理 LCMS 任务。LCMS RDP 重连前确认 controller idle、无 current execution、无人使用物理 Windows 电脑，并记录受保护容器/Python/API/Xvfb 状态；只运行既有 reconnect 入口，不改容器、API、Xvfb、密钥或 SSH 配置。详细步骤见 [LCMS RDP 恢复手册](references/lcms-rdp-recovery.md)。
+4. **再做授权变更。** 只执行用户已明确授权且范围明确的 mutation；已有明确授权无需重复询问。现场诊断默认不提交物理 LCMS 任务。LCMS RDP 重连前确认 controller idle、无 current execution、无人使用物理 Windows 电脑，并记录受保护容器/Python/API/Xvfb 状态；重连本身只运行既有 reconnect 入口，不改 API、Xvfb、密钥或 SSH 配置。设备不是 idle 时，按 MIND 提供的两条路径先清设备：`error` 且无执行用 `POST /v1/device/recover`；`working` 卡住用 `docker restart mind-lcms-control`，健康后再 recover 并确认 idle。MIND 是 controller 的维护方，凡涉及该服务以他们的规则为准（Drake 2026-09-22 确认）。详细步骤见 [LCMS RDP 恢复手册](references/lcms-rdp-recovery.md)。
 5. **验证真实结果。** 同时检查业务状态和可见结果（例如 LCMS monitor 的实际桌面帧）；不要只看命令退出码、HTTP 200 或 PID。一次重连失败码也要先检查真实进程和画面，避免重复执行。
 6. **记录经验后完成。** 每个 incident 在完成前都要更新源仓库的 `skills/bic-onsite-ops/references/incidents.md`，并更新相关 runbook；标明 `verified` 或 `unverified`，写清日期、目标、只读证据、授权动作、结果和残余风险。新的方法必须先在现场复现/核验，再进入 verified 条目；未经核验只能记录为 unverified。
 7. **核验处理与记录。** 确认本次成功结论有实际证据、保护对象保持不变、未验证范围明确；检查故障索引及手册链接，没有重复或冲突的现行步骤，且没有凭据值进入可提交文件。未解决的问题也必须记录，再报告具体阻塞。

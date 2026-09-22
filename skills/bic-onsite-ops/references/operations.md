@@ -80,6 +80,20 @@ Compose 最终解析结果是否真正把目标字段传入容器；解析时不
 
 恢复验证必须包括：恰好一个活动 `xfreerdp`、controller 和其他容器 identity/start/restart 未变、Python/API/Xvfb 仍在、monitor 显示可用 Windows/LCMS 桌面，以及 controller 仍 idle。命令非零可能来自已知 checker 缺陷，先看实际进程和新帧，不要因退出码重复重连。
 
+设备不是 idle 时，先按 MIND 提供的
+[清除非 idle 设备](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting)
+处理，再做重连：`error` 且无执行走 `POST /v1/device/recover`；`working` 卡住只允许
+`docker restart mind-lcms-control`，健康后再 recover 并确认 idle。MIND 是该控制服务的
+维护方，凡涉及 controller 的规则以他们为准；Drake 于 2026-09-22 确认这取代此前
+“不使用 recovery 接口、不重启 controller 容器”的 BIC 侧限制，旧规则不再作为并列选项保留。
+MIND 在同一套流程中给出的其余限制仍然有效：不 `docker compose down`、不动其他容器、
+不改 `lcms.4080.env`、不直接改 controller 的 SQLite。注意 Path B 会重建 Python/Xvfb，
+受保护 PID 的比对只适用于重连，不适用于已授权的重启。
+
+访问路径按 Drake 2026-09-22 的决定仍用 BIC 自己的通道（有线 `-J orin`、Tailscale
+`-J orin-tel`）；MIND 文档中的跳板与“Mac 不能直连 104”描述的是他们的身份和网络，
+不改变我方路径，也不说明我方路径失效。
+
 ## 交接与记录
 
 每次 incident 都要在完成前更新源仓库的 [`incidents.md`](incidents.md) 和受影响 runbook；源 checkout 不可用时遵循 SKILL.md 的当前工作区暂存/待同步规则，不直接修改安装副本：记录时间、site/目标、请求与授权范围、只读证据、实际 mutation、验证证据、`verified`/`unverified` 状态和 follow-up。凭历史快照写出的猜测必须标为 `unverified`；只有当前现场证据支持的方法才能标为 `verified`。
