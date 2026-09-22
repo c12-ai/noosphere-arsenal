@@ -16,7 +16,7 @@
 | DEVICE-001 | 2026-09-20 | Device 切换 Mind 时 Compose 未传入连接配置 | Mind 启动、控制端空闲及 Lab 心跳已验证；未下发实验 | [Provider 配置](operations.md) |
 | OPS-003 | 2026-09-20 | Mac 的 `DRY=1` 未传给 direct runner | 已确认，尚未修复；不可作为只读预检使用 | [运维处理](operations.md) |
 | CC-001 | 2026-09-21 | CC repeat confirmation returns 409 after success | Saved result and Analyze progression verified; second-request trigger unverified | [Operations](operations.md#cc-result-confirmation-popup) |
-| LCMS-004 | 2026-09-22 | 黑屏且容器内无 `xfreerdp`；设备被卡住的 execution 占用 | 桌面恢复已验证；设备未清除，MIND 的 Path B 未执行 | [清除非 idle 设备](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting) |
+| LCMS-004 | 2026-09-22 | 45 分钟内三次黑屏掉线；设备先被卡住的 execution 占用，后转 `error` | 根因确认为他人登录挤掉会话；Path A 两次验证，桌面与 idle 已验证；Path B 仍未验证 | [清除非 idle 设备](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting) |
 
 ## LCMS-001：黑屏、SSH 身份与重连误报
 
@@ -254,6 +254,31 @@ Status: **partially verified** — RDP recovery verified; the device was not ret
   session died by itself, and a stuck `working` execution does not resume merely because the
   desktop returns. Until the device is cleared it accepts no new LCMS execution and the waiting
   BIC Analyze task cannot complete.
+
+### LCMS-004 continued — root cause found, Path A verified twice (2026-09-22, 11:14-11:36)
+
+- Someone restarted `mind-lcms-control` at about 10:58 outside this session. That killed display
+  `:99`, so stuck execution `0e92f04a` finally went terminal as `run_failed` /
+  `run_aborted: Unable to open display: b':99'`, releasing the device lock and leaving
+  `state=error` with `current_execution_id=null`. The Analyze task submitted at 10:03 is dead.
+- **Path A verified twice.** `POST /v1/device/recover` at 11:14:22 and again at 11:31:57 both
+  returned `{"state":"idle","current_execution_id":null,"error":null}` immediately. Path B was
+  therefore never needed and remains **unverified onsite**.
+- **Root cause of the repeated black screens: another login evicts the controller's RDP session.**
+  The FreeRDP log recorded `ERRINFO_DISCONNECTED_BY_OTHER_CONNECTION (0x00000005)` at 03:28:31 UTC,
+  matching the third drop. Three drops occurred in about 45 minutes. Reconnecting succeeds each
+  time but only until the next login, so repeating the script is not a fix — the person logging
+  in has to stop, or MIND has to change the session policy.
+- Second error shape seen once the screen is black and something dispatches anyway:
+  `automation_failed: 无法从当前帧解析点击目标`. Expect to run Path A before each reconnect.
+- Two reconnects run (11:17 and 11:32), each verified by exactly one `xfreerdp`, unchanged
+  python/Xvfb PIDs (3812156 / 3812294), unchanged containers, a desktop frame with a current clock,
+  and `state=idle` afterwards. The script exited 1 both times with the known PID-field defect.
+- Note on evidence quality: at 11:18 two frames five seconds apart differed (322,449 vs 322,453
+  bytes), proving a live capture. At 11:32 they were byte-identical on a still desktop, which is
+  expected and was corroborated by the visible clock, but is weaker proof.
+- Still open: the LCMS application is not on screen after a fresh reconnect, so an operator step
+  may be needed before the next Analyze run.
 
 ## MIND-supplied device reset procedure (2026-09-22, supplied by Drake, unverified onsite)
 

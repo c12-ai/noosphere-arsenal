@@ -193,6 +193,35 @@ the deployed file and checksum above are the artifact verified in this session.
 4. Recheck the controller status. It must still be idle with no current
    execution; do not start an experiment as part of this recovery.
 
+Two monitor frames a few seconds apart are the strongest cheap liveness check:
+differing bytes prove the capture is updating. Identical bytes on a still desktop
+are expected and do not by themselves mean the session is frozen — read the
+visible clock as well.
+
+### A session evicted by another login (verified 2026-09-22)
+
+When the desktop drops repeatedly, read the FreeRDP log tail before reconnecting
+again. This line names the cause outright:
+
+```text
+ERRINFO_DISCONNECTED_BY_OTHER_CONNECTION (0x00000005):
+Another user connected to the server, forcing the disconnection of the current
+connection.
+```
+
+On 2026-09-22 the controller's session was evicted three times within about
+45 minutes, and the 03:28:31 UTC log entry above matched the third drop exactly.
+Someone logging into that Windows PC, remotely or at the keyboard, displaces the
+controller's RDP session. LCMS-001 had already seen this code in historical logs;
+2026-09-22 confirms it as a live, repeating cause rather than a stale line.
+
+Reconnecting works but only until the next login, so repeating the script is not
+a fix. Escalate instead: find who is logging in and stop it, or ask MIND for a
+session policy that does not evict the automation. A dropped session also leaves
+the device in `error` once anything dispatches against the black frame
+(`automation_failed: 无法从当前帧解析点击目标`), so expect to run Path A before
+reconnecting.
+
 On the lab's wired LAN, first check direct access to the authenticated frame
 endpoint. On 2026-09-21, direct access from the Mac returned HTTP 200 with
 `image/jpeg`; the browser address is
