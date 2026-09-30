@@ -17,6 +17,7 @@
 | OPS-003 | 2026-09-20 | Mac 的 `DRY=1` 未传给 direct runner | 已确认，尚未修复；不可作为只读预检使用 | [运维处理](operations.md) |
 | CC-001 | 2026-09-21 | CC repeat confirmation returns 409 after success | Saved result and Analyze progression verified; second-request trigger unverified | [Operations](operations.md#cc-result-confirmation-popup) |
 | LCMS-004 | 2026-09-22 | 45 分钟内三次黑屏掉线；设备先被卡住的 execution 占用，后转 `error` | 根因确认为他人登录挤掉会话；Path A 两次验证，桌面与 idle 已验证；Path B 仍未验证 | [清除非 idle 设备](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting) |
+| OPS-004 | 2026-10-01 | aws-test S3 `ListBuckets` startup warnings; local MinIO considered for Agent | Credential valid (only `s3:ListAllMyBuckets` denied); aws-test stays on real Mind + AWS S3 | [Mind / storage sets](operations.md#agent-mind-and-object-storage-configuration-sets) |
 
 ## LCMS-001：黑屏、SSH 身份与重连误报
 
@@ -302,3 +303,20 @@ authority over the controller procedure.
 Path B was not executed onsite in this session, so it stays `unverified` until a live run confirms
 it. Note that it restarts Python/Xvfb, so this runbook's protected-PID comparison applies to a
 reconnect, not to an authorized Path B restart.
+
+## OPS-004: aws-test S3 startup warnings and Mind/storage set (2026-10-01, verified)
+
+- Site: aws-test. Scope: diagnosis of S3 startup warnings and whether the Agent could move
+  to local MinIO. Credential values were not printed or recorded.
+- Evidence: inside the service container with its own environment, STS `get_caller_identity` succeeded as IAM user
+  `bic-a1-s3`, and `list_objects_v2(MaxKeys=1)` on the configured bucket succeeded. Only the
+  account-wide `ListBuckets` used by the startup check was denied (`s3:ListAllMyBuckets`).
+  Device's `InvalidToken` came from boto3 falling back to instance credentials because Device
+  has no S3 settings.
+- Evidence: from the host and from containers, the box's own public `:9000` timed out, while
+  `bic-minio:9000` worked only inside Docker. One Agent `S3_ENDPOINT_URL` serves both
+  server-side calls and browser presigning, so neither endpoint works for both.
+- Outcome: the warnings are not an expired credential; key rotation is not a fix. Drake ruled
+  aws-test = Set 1 (real Mind + AWS S3) and local bench = Set 2 (mock Mind + local MinIO).
+  The startup-check code fix is tracked separately. Rules recorded in
+  [operations](operations.md#agent-mind-and-object-storage-configuration-sets).
