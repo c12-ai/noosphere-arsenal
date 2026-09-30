@@ -108,6 +108,13 @@ Run these on the controller host, or against a local tunnel to port 18000.
 4. Wait for the container's health to report ok, then `POST /v1/device/recover`,
    then confirm `state=idle` with `current_execution_id=null`.
 
+Verified live on 2026-09-22 at 13:41 over `orin-tel`. Two refinements from that run:
+the container reported healthy about 30 s after `docker restart` and the device was
+already `idle` at that point, so `recover` returned idle as a no-op rather than
+clearing an error; and the restart brought up a new `xfreerdp` by itself, so the
+reconnect script was neither needed nor run. Check for `xfreerdp` after the restart
+and skip the helper when a session is already up — do not drop a working session.
+
 Restarting the controller kills the RDP session and the Python/Xvfb processes
 with it, so the protected-PID comparison in this runbook applies only across a
 reconnect, not across an authorized Path B restart. Re-run the idle and operator

@@ -134,6 +134,41 @@ Drake's rule, 2026-09-21 (required configuration, not a live configuration check
 - Before deployment or a provider switch, check the target environment and effective DEVICE_PROVIDER. Report an AWS test mind configuration as a conflict with this rule; correct it only within authorized scope. Do not route AWS test to the onsite controller to bypass this boundary.
 - Agent MIND_MOCK_MODE and Robot Mock are independent settings and must be checked separately.
 
+## Agent Mind and object-storage configuration sets
+
+Verified 2026-10-01; environment choice is Drake's ruling of the same day. "Mind" here is
+the Agent's analysis service (ChemEngine, `MIND_MOCK_MODE`), not the Device provider above;
+aws-test real Mind with `DEVICE_PROVIDER=fake` is consistent with both rules.
+
+Only two configuration sets are valid. Never mix them:
+
+| Set | Agent Mind | Object storage | Why it works | Environments |
+|---|---|---|---|---|
+| 1 | real (`MIND_MOCK_MODE=false`) | AWS S3 | Presigned URLs are reachable from the public internet, so Mind can fetch the images | aws-test, a1 (cloud boxes) |
+| 2 | mock (`MIND_MOCK_MODE=true`) | local MinIO | The box's LAN address is reachable from both browsers and containers | local bench; orin-style onsite LAN |
+
+- `MIND_MOCK_MODE=true` means the real Mind is never called, even when `MIND_HOST` /
+  `MCP_HOST` still point at the real ChemEngine host; that value is then harmless.
+  Switching mock and real is only this flag.
+- aws-test cannot use local MinIO for the Agent. The box cannot reach its own public
+  address (`43.192.79.141:9000` on 2026-10-01; times out from the host and from containers; no AWS hairpin), and
+  `bic-minio:9000` resolves only inside Docker. The Agent has one `S3_ENDPOINT_URL` for
+  both server-side calls and signing browser URLs, and the signature binds the Host.
+  An internal endpoint breaks browser links; the public endpoint breaks server-side calls
+  (ELN figure fetch, startup check). So aws-test stays on Set 1.
+
+### S3 startup warnings
+
+| Log line | Meaning | Action |
+|---|---|---|
+| Agent/Lab `S3 initialization failed (will continue without S3): AccessDenied ... ListBuckets` | The startup check calls account-wide `ListBuckets`. IAM user `bic-a1-s3` authenticates and can list/read the configured bucket; only `s3:ListAllMyBuckets` is denied | Not an expired credential; rotating keys does not fix it. A code fix (check the configured bucket instead) is tracked separately |
+| Device `InvalidToken ... ListBuckets` | Device has no S3 settings, so boto3 falls back to instance credentials | Harmless |
+
+To verify a credential without exposing it, run inside the service container with that
+container's own environment: STS `get_caller_identity`, then `list_objects_v2` on the
+configured bucket with `MaxKeys=1`. Print only the ARN tail and result/error codes, never
+key values or the environment block.
+
 ## Default paired reset for another run
 
 Drake's instruction, 2026-09-21: when he asks to reset in this BIC operations
