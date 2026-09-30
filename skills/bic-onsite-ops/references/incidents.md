@@ -16,7 +16,7 @@
 | DEVICE-001 | 2026-09-20 | Device 切换 Mind 时 Compose 未传入连接配置 | Mind 启动、控制端空闲及 Lab 心跳已验证；未下发实验 | [Provider 配置](operations.md) |
 | OPS-003 | 2026-09-20 | Mac 的 `DRY=1` 未传给 direct runner | 已确认，尚未修复；不可作为只读预检使用 | [运维处理](operations.md) |
 | CC-001 | 2026-09-21 | CC repeat confirmation returns 409 after success | Saved result and Analyze progression verified; second-request trigger unverified | [Operations](operations.md#cc-result-confirmation-popup) |
-| LCMS-004 | 2026-09-22 | 45 分钟内三次黑屏掉线；设备先被卡住的 execution 占用，后转 `error` | 根因确认为他人登录挤掉会话；Path A 两次验证，桌面与 idle 已验证；Path B 仍未验证 | [清除非 idle 设备](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting) |
+| LCMS-004 | 2026-09-22 | 一天内四次黑屏掉线；设备被卡住的 execution 占用或转 `error` | 根因确认为他人登录挤掉会话；Path A 两次、Path B 一次现场验证，桌面与 idle 已验证 | [清除非 idle 设备](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting) |
 | OPS-004 | 2026-10-01 | aws-test S3 `ListBuckets` startup warnings; local MinIO considered for Agent | Credential valid (only `s3:ListAllMyBuckets` denied); aws-test stays on real Mind + AWS S3 | [Mind / storage sets](operations.md#agent-mind-and-object-storage-configuration-sets) |
 
 ## LCMS-001：黑屏、SSH 身份与重连误报
@@ -280,6 +280,27 @@ Status: **partially verified** — RDP recovery verified; the device was not ret
   expected and was corroborated by the visible clock, but is weaker proof.
 - Still open: the LCMS application is not on screen after a fresh reconnect, so an operator step
   may be needed before the next Analyze run.
+
+### LCMS-004 continued — Path B verified over Tailscale (2026-09-22, 13:40-13:46)
+
+- Route: `orin-tel` (Drake switched off the wired network). The controller API key was read on the
+  4080 host from `~/mind-lcms-control/config/lcms.4080.env`, so no credential crossed the wire.
+- Fourth drop of the day. `xfreerdp` absent again; the container had been restarted by someone at
+  about 12:33. A new execution `66c1009e-aae0-4083-b16a-2c6636ad372f`, submitted 13:33:53, held the
+  device at `working` with a single `running` event and no progress. With no RDP session at all the
+  automation had no desktop to act on, so this was impossible rather than slow.
+- **Path B executed and verified.** `docker restart mind-lcms-control` at 13:41:25 returned in one
+  second; the container reported healthy about 30 s later. Two findings that refine MIND's steps:
+  the device was already `idle` at that point, so `POST /v1/device/recover` at 13:42:09 returned
+  idle as a no-op rather than clearing an error; and the restart started a new `xfreerdp` by itself
+  (PID 3862519), so the reconnect script was neither needed nor run. Verified afterwards with a
+  322,547-byte desktop frame and `state=idle`.
+- Note on the Mac-side frame fetch: the first attempt returned HTTP 502 from the local Clash proxy,
+  not from the controller. Bypass the proxy before concluding the monitor is down.
+- Note on frame clocks: the Windows PC clock runs about four minutes ahead of the controller host,
+  consistently across every observation today. Use it as a liveness signal, not as a timestamp.
+- Unchanged conclusion: the drops keep happening because another login evicts the session. Four
+  drops in one day. Clearing and reconnecting is treatment, not a fix.
 
 ## MIND-supplied device reset procedure (2026-09-22, supplied by Drake, unverified onsite)
 
