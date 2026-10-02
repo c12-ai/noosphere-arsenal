@@ -17,6 +17,25 @@ Scope: lab / BE / portal / mock images only. Chem, keycloak, infra, and any
 compose/`.env` change are OUT of scope (see step 2). Sibling skills:
 orin LAN deploy → BIC `field-deploy`; local dev bench → BIC `env-up`.
 
+## Box layout (verified 2026-10-01)
+
+- **One BIC set, in `~/ichor-v2.5/`** (renamed from `~/bic-v2/` on 2026-10-01;
+  the old parallel `ichor-*` review stack was removed). It holds the per-service
+  compose dirs, `.env`, `.release.env`, `lib/stage.env`, `keycloak/` and
+  `phoenix/`. Container and compose project names are unchanged (`bic-*`).
+- **Shared infra in `~/bic-infra/`** (postgres, redis, minio, rabbitmq) — not
+  managed by this SOP.
+- **The deploy dir is per-site**: `DEPLOY_DIR=ichor-v2.5` in BIC-meta
+  `ops/field/sites/aws-test.conf` (orin/a1 default to `bic-v2`). `make
+  remote-deploy site=aws-test` reads it; running `relay-deploy.sh` directly
+  needs `DEPLOY_DIR=ichor-v2.5` exported, or it targets `~/bic-v2`.
+- **Renaming the deploy dir needs a container recreate**: bind mounts store the
+  host path string, so every container mounting from the old dir must be
+  force-recreated from the new one before the old path disappears. Check with
+  `docker inspect <c> --format '{{range .HostConfig.Binds}}{{.}} {{end}}'`.
+- Cutover backups (live set, incl. `.env` and DB dumps):
+  `~/bic-backups/cutover-20261001-055231/`.
+
 ## 1. Survey — what needs redeploying (read-only)
 
 For each deployable repo, compare main head vs what the box runs:
@@ -56,10 +75,11 @@ comparison against ghcr does NOT work on this box).
   authenticated with c12-ai access, `~/.ssh/config` has `Host aws-test`.
 - **Config drift check.** relay-deploy is IMAGES-ONLY. If merges since the
   last deploy touched `ops/field/` compose files or added `.env` keys, those
-  need `update.sh` — and `update.sh` on aws-test clobbers the site-local
-  `KC_PROXY_HEADERS: xforwarded` line in `keycloak/docker-compose.yml`
-  (re-add it after any update.sh run). Surface this to the user; don't run
-  update.sh as part of this SOP.
+  need `update.sh`. Surface this to the user; don't run update.sh as part of
+  this SOP. (The old "update.sh clobbers the site-local `KC_PROXY_HEADERS:
+  xforwarded` line" warning is obsolete: meta #333 upstreamed the line into
+  the repo's `keycloak/docker-compose.yml`; repo and box verified in
+  agreement 2026-08-07.)
 - Anything you can't verify yourself (creds, box tenancy, whether a real
   robot is attached) → ASK the user; never guess.
 
