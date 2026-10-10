@@ -13,9 +13,10 @@
 
 “Telnet”是用户对远程入口的称呼，不代表启用 Telnet 协议。用户说明身处现场有线网络时，
 优先用 `orin`；远程 Tailscale 时用 `orin-tel`。仅当当前连接方式确实不明确时才询问，
-不要因历史记录用了另一入口而再次确认。下面的 Tailscale 示例在有线场景下把 alias 换为 `orin`。
+不要因历史记录用了另一入口而再次确认。registry（`orin.conf`）当前为 `SSH_TARGET=orin-tel`、`DEPLOY_DIR=ichor`、`RELEASE_REF=main`。下面的 Tailscale 示例在有线场景下把 alias 换为 `orin`。
 
 - 先运行当前 `ops/field/remote-deploy.sh --list-sites`，用 live registry 解析 canonical site、alias、transport 和 SSH target。registry 是当前事实源；环境名/IP 可能变化。
+- 现场 Agent 是 iChor（2.6.x），包目录 `~/ichor`（2026-10-11 核验；旧 `~/bic-v2` 已改名为 `~/bic-v2.retired-20261011`，仅留历史，不作操作目标）。服务器上的 `make doctor`、`make reset DATASET=test|demo SCOPE=agent|lab`、`make up/down/log SERVICE=...` 在 `~/ichor` 执行；Compose 项目在 `~/ichor/<service>/`，容器名沿用 `bic-*`（Agent 为 `bic-agent-service`）。从 Mac 部署用 BIC-meta 的 `make remote-deploy site=orin`，无需再覆盖 `FIELD_SSH`。
 - 现场 Portal、API 和 Keycloak 通过现场地址访问；需要时使用现有 Tailscale/代理通道。数据库只在确有诊断需要时建立只读或受控 tunnel，PostgreSQL 默认远端端口是 `5432`，本机转发常用 `15432`。凭据读取见 [credentials.md](credentials.md)；可提交文档和日志只写字段名，不写值。
 - LCMS 诊断使用当前入口作为 ProxyJump：有线 `-J orin`，Tailscale `-J orin-tel`，目标都是 `robot-003@192.168.12.104`，跳板为 `.150`；私钥只留在 Mac，不复制到跳板机或仓库。不要把 `.104` 当作 BIC 应用部署目标，除非用户明确要求且目标属于 registry。
 
@@ -51,7 +52,7 @@ Postgres 可用局部转发避开本机数据库端口：
 ssh -N -L 127.0.0.1:15432:127.0.0.1:5432 orin-tel
 ```
 
-数据库客户端连接 `127.0.0.1:15432`。本次 Agent 数据库为 `talos_agent_db`，Lab 为
+数据库客户端连接 `127.0.0.1:15432`。Agent 数据库为 `talos_agent_db_ichor`，Lab 为
 `labrun_v2_db`，用户名 `postgres`；重新核对有效配置再使用。若连接失败，区分 TCP、
 PostgreSQL SSL 协商和密码认证。本次服务器拒绝 PostgreSQL SSL，使用 SSH/Tailscale
 传输时客户端关闭数据库 SSL 后可进入后续连接步骤；不要把此设置推广到其他服务器。
@@ -62,6 +63,7 @@ DataGrip 显示 DBMS/Driver 版本本身不是错误，需要读取实际错误�
 - Agent 的 `MIND_MOCK_MODE` 只决定 Agent 对 Mind 的调用；Device 的 `DEVICE_PROVIDER=fake|mind` 独立决定设备 provider。每次都读取 live config 和运行时状态。
 - `make reset` 必须显式同时给出 Makefile 支持的 `SCOPE` 与 `DATASET`，一次只作用于一个业务域；先说明会重置谁、是否包含用户认证数据，并取得明确授权。诊断不因方便而 reset，也不把 reset 当成修复步骤。
 - 目标缺少 Makefile 或 reset 入口时，核对 report-only drift 和依赖。用户授权安装后，备份并同步仓库现有的匹配工具，验证哈希、语法、帮助和 `make -n`；不要临时发明另一套 reset 脚本，也不要顺手执行 reset。
+- Lab 的可选机器人步骤在 `~/ichor/lab-service/config/task-skills.env`（现场：CC `+setup_tube_rack`，RE `+end_evaporation`）；现场不设置 `RE_END_EVAPORATION_DELAY_SECONDS`（运行完整程序）。
 - 现场 `.env`/release pin 是受保护的运行时事实。需要重建配置时，只在用户授权的选定容器范围内用同一 pin 重建；不要顺手重建全栈或共享基础设施。
 
 现场标准命令以 [field README](https://github.com/c12-ai/BIC-meta/blob/main/ops/field/README.md) 为准。同期核验过的故障

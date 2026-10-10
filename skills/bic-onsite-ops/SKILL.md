@@ -19,6 +19,8 @@ description: BIC 现场故障诊断、运维处理及经验记录，涵盖现场
 
 Drake 要求“reset / 重置”时，默认按当前明确的目标环境执行 Lab `demo` → Agent `test` 配对；前置检查、覆盖规则和验证见 [默认配对重置](references/operations.md#default-paired-reset-for-another-run)。不要重复询问已确定的 dataset；目标不明或有活动执行时先澄清。
 
+现场（站点 `orin`，广州）当前运行 iChor（Agent 2.6.x），包目录是机器上的 `~/ichor`；旧 v2 Agent 已全面退役，旧目录 `~/bic-v2.retired-20261011` 仅留历史，不要使用。服务器上的 `make doctor`、`make reset`、`make up/down/log SERVICE=...` 都在 `~/ichor` 执行；Compose 项目位于 `~/ichor/<service>/`。Agent 容器名仍是 `bic-agent-service`。
+
 按以下顺序处理每个现场问题。编写或更新手册、记录和评审时，遵循
 [`references/governance.md`](references/governance.md) 的结构、术语、版本控制及评审规则。
 

@@ -17,7 +17,7 @@
 7. **依据与关联记录：** 链接维护中的脚本、契约、故障记录和变更记录。
 
 术语统一：`orin` 是站点 ID，也是现场有线 SSH alias；`orin-tel` 是 Tailscale SSH alias，
-不称为 Telnet 协议。区分 Agent 的模拟 Mind、Robot Mock、Device provider 和真实控制服务。
+不称为 Telnet 协议。现场包目录是 `~/ichor`（iChor），不是已退役的 `~/bic-v2`。区分 Agent 的模拟 Mind、Robot Mock、Device provider 和真实控制服务。
 区分 API key、monitor token、SSH 登录密码及 SSH 私钥；正文只记录用途与读取位置。
 
 命令应可复制，但凭据用变量或私有存储读取，不提供真实值。使用适用日期约束网络地址、
