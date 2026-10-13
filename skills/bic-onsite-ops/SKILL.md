@@ -1,6 +1,6 @@
 ---
 name: bic-onsite-ops
-description: BIC 现场故障诊断、运维处理及经验记录，涵盖现场访问、provider、重置入口和 LCMS RDP 恢复；不用于通用本地 bench 调试。Use when the user says "BIC 现场运维", "现场故障处理", "LCMS 黑屏", or "RDP 重连".
+description: BIC 现场故障诊断、运维处理及经验记录，涵盖现场访问、provider、重置入口、LCMS RDP 恢复和 Mind CC 分析原始请求/响应提取；不用于通用本地 bench 调试。Use when the user says "BIC 现场运维", "现场故障处理", "LCMS 黑屏", "RDP 重连", or "CC result analyze raw request/response".
 ---
 
 # BIC 现场运维
@@ -31,5 +31,7 @@ Drake 要求“reset / 重置”时，默认按当前明确的目标环境执行
 5. **验证真实结果。** 同时检查业务状态和可见结果（例如 LCMS monitor 的实际桌面帧）；不要只看命令退出码、HTTP 200 或 PID。一次重连失败码也要先检查真实进程和画面，避免重复执行。
 6. **记录经验后完成。** 每个 incident 在完成前都要更新源仓库的 `skills/bic-onsite-ops/references/incidents.md`，并更新相关 runbook；标明 `verified` 或 `unverified`，写清日期、目标、只读证据、授权动作、结果和残余风险。新的方法必须先在现场复现/核验，再进入 verified 条目；未经核验只能记录为 unverified。
 7. **核验处理与记录。** 确认本次成功结论有实际证据、保护对象保持不变、未验证范围明确；检查故障索引及手册链接，没有重复或冲突的现行步骤，且没有凭据值进入可提交文件。未解决的问题也必须记录，再报告具体阻塞。
+
+提取某个 session 的 Mind CC 结果分析原始请求（参数 + 图片）与原始响应并写入飞书文档：只读，每个 session 一个 subagent，见 [Mind 原始请求/响应提取](references/mind-raw-io-extraction.md)。
 
 日常访问、代理、重置边界、provider 选择和 Mac→`.150`→`.104` 的 LCMS 通路见 [`references/operations.md`](references/operations.md)。故障索引和追加记录格式见 [`references/incidents.md`](references/incidents.md)。按当前请求处理现场，不因读取旧记录而自动执行操作；仅要求整理 Skill 时不连接或修改现场。
