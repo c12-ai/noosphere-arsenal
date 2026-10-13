@@ -142,12 +142,13 @@ Verified 2026-10-01; environment choice is Drake's ruling of the same day. "Mind
 the Agent's analysis service (ChemEngine, `MIND_MOCK_MODE`), not the Device provider above;
 aws-test real Mind with `DEVICE_PROVIDER=fake` is consistent with both rules.
 
-Only two configuration sets are valid. Never mix them:
+Only these configuration sets are valid. Never mix them:
 
 | Set | Agent Mind | Object storage | Why it works | Environments |
 |---|---|---|---|---|
 | 1 | real (`MIND_MOCK_MODE=false`) | AWS S3 | Presigned URLs are reachable from the public internet, so Mind can fetch the images | aws-test, a1 (cloud boxes) |
-| 2 | mock (`MIND_MOCK_MODE=true`) | local MinIO | The box's LAN address is reachable from both browsers and containers | local bench; orin-style onsite LAN |
+| 2 | mock (`MIND_MOCK_MODE=true`) | local MinIO | The box's LAN address is reachable from both browsers and containers | local bench |
+| 3 | real (`MIND_MOCK_MODE=false`) | local MinIO on the LAN address | Mind runs on the same LAN (`192.168.12.104`) and can fetch presigned URLs signed for `http://192.168.12.150:9000` | orin onsite (verified 2026-10-13) |
 
 - `MIND_MOCK_MODE=true` means the real Mind is never called, even when `MIND_HOST` /
   `MCP_HOST` still point at the real ChemEngine host; that value is then harmless.
@@ -158,6 +159,11 @@ Only two configuration sets are valid. Never mix them:
   both server-side calls and signing browser URLs, and the signature binds the Host.
   An internal endpoint breaks browser links; the public endpoint breaks server-side calls
   (ELN figure fetch, startup check). So aws-test stays on Set 1.
+- Set 3 replaces the 2026-10-01 "onsite = mock Mind" entry: on 2026-10-13 the onsite Agent
+  container had `MIND_MOCK_MODE=false`, `MCP_HOST=192.168.12.104` and
+  `S3_ENDPOINT_URL=http://192.168.12.150:9000`, and real CC analyze calls succeeded on
+  2026-10-12. It works only because Mind sits on the onsite LAN; do not copy it to a site
+  whose Mind cannot reach the box's MinIO.
 
 ### S3 startup warnings
 
