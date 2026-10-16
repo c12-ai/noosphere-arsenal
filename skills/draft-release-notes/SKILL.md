@@ -14,6 +14,14 @@ Read [references/microsoft-release-note-pattern.md](references/microsoft-release
 
 For a bilingual deliverable, produce the complete English note followed by the complete Chinese note. Omit empty optional sections instead of publishing placeholders.
 
+## Title format
+
+The Chinese announcement posted to the BIC product-and-engineering group (产研沟通群) uses exactly this title, with the release date in dotted form:
+
+`BIC 小分子纯化项目版本发布 YYYY.MM.DD` (for example `BIC 小分子纯化项目版本发布 2026.09.29`)
+
+Use the same text as the Feishu document title, and do not repeat it as a heading in the body. Do not add a date range or a descriptive subtitle to the title; describe the scope in the opening paragraph instead. The release boundary of a routine announcement starts at the previous announcement's date unless Drake gives another boundary.
+
 ## Establish the release boundary
 
 Before gathering changes, resolve:
