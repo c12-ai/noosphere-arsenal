@@ -23,6 +23,12 @@ description: SOP for raising/opening a PR in any repo. Use whenever asked to rai
   from the target repository and its ownership conventions; do not hardcode them
   from memory. If a required choice cannot be resolved, ask Drake rather than
   silently leaving it blank.
+- Version label (repos that use the shared `version-policy` from
+  `c12-ai/github-workflows`): exactly one of `version:patch|minor|major|none`, on PRs
+  to `development` and `main`. `version:none` only when the PR changes no runtime
+  files (`.github/`, docs, `*.md`, tests, `.trellis/`, `.claude/`, `.agents/`). Any
+  runtime change bumps the version in the same PR, to bump(max(base-branch version,
+  latest full release)).
 - Check available projects and milestones and set them when appropriate. These
   two fields may remain blank when no suitable project or milestone exists.
 - Read back the PR after creation or update to verify reviewer requests,
