@@ -17,9 +17,9 @@ description: BIC 现场故障诊断、运维处理及经验记录，涵盖现场
 `orin-tel`（用户有时称为 “Telnet”，实际仍是 SSH）。按用户当前连接方式选择入口，
 不要固定使用旧会话的 alias；这也决定访问 `.104` 时的 ProxyJump 和各类隧道入口。
 
-Drake 要求“reset / 重置”时，默认按当前明确的目标环境执行 Lab `demo` → Agent `test` 配对；前置检查、覆盖规则和验证见 [默认配对重置](references/operations.md#default-paired-reset-for-another-run)。不要重复询问已确定的 dataset；目标不明或有活动执行时先澄清。
+Drake 要求“reset / 重置”时，默认按当前明确的目标环境执行 Lab `demo` → Agent `test` 配对；前置检查、覆盖规则和验证见 [默认配对重置](references/operations.md#default-paired-reset-for-another-run)。不要重复询问已确定的 dataset；目标不明或有活动执行时先澄清。**orin 的 Agent/Lab 数据自 2026-10-21 起有实际意义（Drake）：没有 Drake 明确点名 orin 的重置指令时，绝不重置 orin。**
 
-现场（站点 `orin`，广州）当前运行 iChor（Agent 2.6.x），包目录是机器上的 `~/ichor`；旧 v2 Agent 已全面退役，旧目录 `~/bic-v2.retired-20261011` 仅留历史，不要使用。服务器上的 `make doctor`、`make reset`、`make up/down/log SERVICE=...` 都在 `~/ichor` 执行；Compose 项目位于 `~/ichor/<service>/`。Agent 容器名仍是 `bic-agent-service`。
+现场（站点 `orin`，广州）当前运行 iChor（Agent 2.9.6 / Lab 1.4.3，2026-10-21 核验），包目录是机器上的 `~/ichor`；旧 v2 Agent 已全面退役，旧目录 `~/bic-v2.retired-20261011` 仅留历史，不要使用。服务器统一用 `ichor`（与本地 Dev Container 同一套命令，`ops/field/Makefile` 已删除）：`ichor status`、`ichor doctor`、`ichor start|stop|restart <svc>`、`ichor logs <svc> [-n N] [-f]`、`ichor reset <lab|agent|all> [--dataset test|demo]`，在 `~/ichor` 下执行或直接用 PATH 上的 `ichor`（`~/.local/bin/ichor`）；Compose 项目位于 `~/ichor/<service>/`。Agent 容器名仍是 `bic-agent-service`。
 
 按以下顺序处理每个现场问题。编写或更新手册、记录和评审时，遵循
 [`references/governance.md`](references/governance.md) 的结构、术语、版本控制及评审规则。

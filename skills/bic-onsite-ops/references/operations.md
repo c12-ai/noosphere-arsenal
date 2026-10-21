@@ -16,7 +16,7 @@
 不要因历史记录用了另一入口而再次确认。registry（`orin.conf`）当前为 `SSH_TARGET=orin-tel`、`DEPLOY_DIR=ichor`、`RELEASE_REF=main`。下面的 Tailscale 示例在有线场景下把 alias 换为 `orin`。
 
 - 先运行当前 `ops/field/remote-deploy.sh --list-sites`，用 live registry 解析 canonical site、alias、transport 和 SSH target。registry 是当前事实源；环境名/IP 可能变化。
-- 现场 Agent 是 iChor（2.6.x），包目录 `~/ichor`（2026-10-11 核验；旧 `~/bic-v2` 已改名为 `~/bic-v2.retired-20261011`，仅留历史，不作操作目标）。服务器上的 `make doctor`、`make reset DATASET=test|demo SCOPE=agent|lab`、`make up/down/log SERVICE=...` 在 `~/ichor` 执行；Compose 项目在 `~/ichor/<service>/`，容器名沿用 `bic-*`（Agent 为 `bic-agent-service`）。从 Mac 部署用 BIC-meta 的 `make remote-deploy site=orin`，无需再覆盖 `FIELD_SSH`。
+- 现场 Agent 是 iChor（2.9.6，Lab 1.4.3），包目录 `~/ichor`（2026-10-21 核验；旧 `~/bic-v2` 已改名为 `~/bic-v2.retired-20261011`，仅留历史，不作操作目标）。服务器上用 `ichor`（`ichor status|doctor|start|stop|restart|logs|reset`，与本地 Dev Container 同一套命令；`Makefile` 已于 2026-10-21 删除），在 `~/ichor` 执行或直接用 PATH 上的 `ichor`；Compose 项目在 `~/ichor/<service>/`，容器名沿用 `bic-*`（Agent 为 `bic-agent-service`）。从 Mac 部署用 BIC-meta 的 `make remote-deploy site=orin`，无需再覆盖 `FIELD_SSH`。
 - 现场 Portal、API 和 Keycloak 通过现场地址访问；需要时使用现有 Tailscale/代理通道。数据库只在确有诊断需要时建立只读或受控 tunnel，PostgreSQL 默认远端端口是 `5432`，本机转发常用 `15432`。凭据读取见 [credentials.md](credentials.md)；可提交文档和日志只写字段名，不写值。
 - LCMS 诊断使用当前入口作为 ProxyJump：有线 `-J orin`，Tailscale `-J orin-tel`，目标都是 `robot-003@192.168.12.104`，跳板为 `.150`；私钥只留在 Mac，不复制到跳板机或仓库。不要把 `.104` 当作 BIC 应用部署目标，除非用户明确要求且目标属于 registry。
 
@@ -61,8 +61,10 @@ DataGrip 显示 DBMS/Driver 版本本身不是错误，需要读取实际错误�
 ## 服务与重置边界
 
 - Agent 的 `MIND_MOCK_MODE` 只决定 Agent 对 Mind 的调用；Device 的 `DEVICE_PROVIDER=fake|mind` 独立决定设备 provider。每次都读取 live config 和运行时状态。
-- `make reset` 必须显式同时给出 Makefile 支持的 `SCOPE` 与 `DATASET`，一次只作用于一个业务域；先说明会重置谁、是否包含用户认证数据，并取得明确授权。诊断不因方便而 reset，也不把 reset 当成修复步骤。
-- 目标缺少 Makefile 或 reset 入口时，核对 report-only drift 和依赖。用户授权安装后，备份并同步仓库现有的匹配工具，验证哈希、语法、帮助和 `make -n`；不要临时发明另一套 reset 脚本，也不要顺手执行 reset。
+- 重置只用 `ichor reset <lab|agent|all> --dataset <test|demo>`（默认 `demo`）。它在改数据前检查站点身份、服务健康、Keycloak 与服务账号，要求两侧返回 `status: ok`；没有确认提示，也不检查运行中的实验，所以先说明会重置谁、并自行确认没有活动执行，再取得明确授权。诊断不因方便而 reset，也不把 reset 当成修复步骤。
+- reset 不碰机器人：Lab 保留所有机器人行（站点可有 talos.001–005），重置后机器人一律离线、直到收到真实心跳；不向真机发任何指令。reset 也不覆盖用户与角色。
+- 站点 `ichor` 缺失或过旧时，用 `make remote-deploy site=<site>` 重新下发部署包（直连与 relay 站点都按 `git ls-files` 同步全部受管文件），不要手工拷贝脚本或临时发明另一套 reset 入口。
+- `ichor doctor` 报 `WARN config: .env keys that .env.example does not list (stale?)` 时：在 BIC-meta 用 grep 确认系统代码、部署包（compose）、运维脚本都不再引用这些键；确认后备份站点 `.env`（`.env.bak-<date>-<reason>`），删除这些键，重跑 `ichor doctor` 直到没有该警告。没人引用的配置就是死参数，删掉，不保留、不注释掉（STANDARDS §8）。键被引用时不要删，改为补进模板。
 - Lab 的可选机器人步骤在 `~/ichor/lab-service/config/task-skills.env`（现场：CC `+setup_tube_rack`，RE `+end_evaporation`）；现场不设置 `RE_END_EVAPORATION_DELAY_SECONDS`（运行完整程序）。
 - 现场 `.env`/release pin 是受保护的运行时事实。需要重建配置时，只在用户授权的选定容器范围内用同一 pin 重建；不要顺手重建全栈或共享基础设施。
 
@@ -183,8 +185,8 @@ Drake's instruction, 2026-09-21: when he asks to reset in this BIC operations
 context, use the established target environment and this matching pair, in order:
 
 ```bash
-make reset SCOPE=lab DATASET=demo
-make reset SCOPE=agent DATASET=test
+ichor reset lab --dataset demo
+ichor reset agent --dataset test
 ```
 
 The current physical robot supports one happy path: each movement depends on
@@ -199,10 +201,11 @@ the datasets again. An explicit narrower scope or different dataset overrides
 this default. Resolve the target from current context; ask if ambiguous. This
 conversation establishes the procedure and does not itself request a live reset.
 
-For the current BIC onsite environment, Drake confirmed on 2026-09-21 that no
-real clients use the data. Do not create routine pre-reset data backups or block
-reset on preserving that data. Drake will explicitly signal when real data needs
-protection/backups; apply that instruction when given. Do not infer the same
+As of 2026-10-21 Drake ruled that orin's Agent and Lab data is meaningful and
+must not be reset: never reset orin without an explicit reset instruction from
+Drake that names orin, and ask whether to back up first. (The 2026-09-21 ruling
+that onsite data had no real clients and needed no backups is superseded for orin.)
+aws-test and a1 remain test environments. Do not infer the same
 policy for an unrelated environment. Still check for active physical executions.
 If work is active, stop and clarify before clearing its data. Run through the
 existing target deployment reset entry, one scope at a time; stop if the first
