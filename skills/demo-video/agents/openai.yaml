@@ -1,0 +1,4 @@
+interface:
+  display_name: "Demo Video"
+  short_description: "Make a narrated, captioned product demo video with OpenScreen"
+  default_prompt: "Use $demo-video to make a short demo video of the feature I describe, with zooms, callouts, captions and a voice-over, exported as MP4."
