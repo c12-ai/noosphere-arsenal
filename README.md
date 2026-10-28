@@ -14,6 +14,7 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 - `wrap-up`: SOP for closing a work session — reconcile the active Trellis task, then report a short heads-up + to-do list.
 - `generate-interview-result`: Generate an evidence-based hiring decision from a resume, JD, and interview summary, then safely copy, fill, and verify the Feishu result document for HR.
 - `test-lcms`: Run the BIC TLC → CC → Analyze LCMS scenario through the real Portal with CDP and Phoenix evidence — reset lab demo and agent test per attempt, drive parameters and dispatch, and verify Analyze execution through to every expected vial report.
+- `demo-video`: Make a short product demo video (zooms, callouts, captions, optional local AI voice-over, MP4) with OpenScreen's MCP tools — plan, demo-ready then freeze, record, edit, export, verify. For every role, not only developers.
 
 ## Install
 
@@ -25,6 +26,7 @@ into `.agents/skills/` and symlinked into each agent directory, pinned in
 npx skills add c12-ai/noosphere-arsenal            # pick skills interactively
 npx skills add c12-ai/noosphere-arsenal --all      # install everything
 npx skills add c12-ai/noosphere-arsenal -l         # list available skills
+npx skills add c12-ai/noosphere-arsenal --skill demo-video -g   # one skill, for all your projects
 ```
 
 To restore a project's pinned skills from its `skills-lock.json`:
