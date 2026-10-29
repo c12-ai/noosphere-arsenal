@@ -4,6 +4,8 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 
 ## Skills
 
+- `sop`: Capture a standard operating procedure, check for duplicates, choose its scope, and index it in agent instructions.
+
 - `bic-onsite-ops`: BIC onsite diagnosis, evidence-led LCMS recovery, provider boundaries, and paired Lab demo / Agent test resets.
 
 - `draft-release-notes`: Draft evidence-based BIC release notes in English, Simplified Chinese, or both, with audience-specific product language and full change links.
