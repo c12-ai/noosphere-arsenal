@@ -16,7 +16,7 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 - `raise-issue`: SOP for raising a GitHub issue with full metadata (assignee, labels, type, project, milestone), all discovered live from the target repo.
 - `raise-pr`: SOP for raising/opening a PR — full local gate (pre-commit + CI mirror) all green before push, then monitor the PR's CI and loop-fix until green.
 - `wrap-up`: SOP for closing a work session — reconcile the active Trellis task, then report a short heads-up + to-do list.
-- `generate-interview-result`: Generate an evidence-based hiring decision from a resume, JD, and interview summary, then safely copy, fill, and verify the Feishu result document for HR.
+- `generate-interview-result`: Prepare a structured interview or an evidence-based hiring decision from a resume, JD, and interview evidence, then safely copy, fill, and verify the Feishu document for HR.
 - `test-lcms`: Run the BIC TLC → CC → Analyze LCMS scenario through the real Portal with CDP and Phoenix evidence — reset lab demo and agent test per attempt, drive parameters and dispatch, and verify Analyze execution through to every expected vial report.
 - `demo-video`: Make a short product demo video (zooms, callouts, captions, optional local AI voice-over, MP4) with OpenScreen's MCP tools — plan, demo-ready then freeze, record, edit, export, verify. For every role, not only developers.
 
