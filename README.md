@@ -4,6 +4,8 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 
 ## Skills
 
+- `worklog`: Record research, completed work, or requested to-dos in an Obsidian weekly note through the Obsidian CLI.
+
 - `sop`: Capture a standard operating procedure, check for duplicates, choose its scope, and index it in agent instructions.
 
 - `bic-onsite-ops`: BIC onsite diagnosis, evidence-led LCMS recovery, provider boundaries, and paired Lab demo / Agent test resets.
@@ -19,6 +21,18 @@ A shared arsenal of reusable agent skills, protocols, and workflows.
 - `demo-video`: Make a short product demo video (zooms, callouts, captions, optional local AI voice-over, MP4) with OpenScreen's MCP tools — plan, demo-ready then freeze, record, edit, export, verify. For every role, not only developers.
 
 ## Install
+
+### Global skills shared by Claude Code and Codex
+
+Use this repository as the source for reusable personal workflows. Install a skill globally for both tools with the same command:
+
+```bash
+npx skills add c12-ai/noosphere-arsenal --skill worklog --global --agent claude-code codex --yes
+```
+
+The shared Skill contains the workflow. Use the installer-managed global agent entries; keep tool-specific entries free of a second workflow or a dependency on a private `~/.claude/commands/` file. `worklog` uses the user's vault configuration and does not embed one person's absolute paths. Obsidian must be running with its CLI enabled.
+
+### Project-scoped skills
 
 Install into a project with the [skills CLI](https://skills.sh) — skills are vendored
 into `.agents/skills/` and symlinked into each agent directory, pinned in
@@ -40,7 +54,8 @@ npx skills experimental_install
 ## Update
 
 ```bash
-npx skills update
+npx skills update --global  # global personal skills
+npx skills update          # choose the appropriate scope for project skills
 ```
 
 Install BIC onsite operations globally for Claude Code and Codex:
