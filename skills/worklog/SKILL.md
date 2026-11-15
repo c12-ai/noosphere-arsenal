@@ -46,7 +46,7 @@ Write checkboxes for the actions the user needs to take. If the user asked to lo
 
 ## Add a supported `#承接` entry
 
-On every run, check whether the conversation shows that the user took on a responsibility that belonged to someone else. Add one `#承接` bullet for each evidenced case under today. Do not infer this merely because the user worked hard or helped another team. Record the work, proper owner, time spent, and reason; use `未知` for any field the conversation does not establish.
+On every run, check whether the conversation shows that the user took on a responsibility that belonged to someone else. Add one `#承接` bullet for each evidenced case under today unless the user explicitly limited this invocation to a single entry or only a specified to-do. Keep that explicit scope rather than adding unrelated bullets. Do not infer responsibility merely because the user worked hard or helped another team. Record the work, proper owner, time spent, and reason; use `未知` for any field the conversation does not establish.
 
 ```markdown
 - #承接 <做了什么> — 本该：<谁负责> · 耗时：<多久> · 原因：<为什么接>
