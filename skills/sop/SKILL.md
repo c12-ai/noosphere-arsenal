@@ -1,6 +1,6 @@
 ---
 name: sop
-description: Capture a standard operating procedure ("when I say X, do Y") into the right persistent home — a Codex.local.md one-liner, a project skill in ./.Codex/skills, a user-level skill in ~/.Codex/skills, or (development skills only) a plugin in the c12-apex marketplace — after deduplicating against existing rules and skills. Use when the user says "/sop", "make this an SOP", "remember this procedure", "add global", "this is a shared skill/sop", or right after they correct how a procedure should be done. Also use when asked to add, index, or reference an EXISTING skill in Codex.local.md / AGENTS.md ("add skill X to Codex.local.md", "apply skill X to <repo>") — never hand-edit those pointers in.
+description: Capture a standard operating procedure ("when I say X, do Y") into the right persistent home — a Codex.local.md one-liner, a project skill in ./.Codex/skills, a user-level skill in ~/.Codex/skills, or (development skills only) a plugin in the c12-apex marketplace — after deduplicating against existing rules and skills. Use when the user says "/sop", "make this an SOP", "remember this procedure", "add global", "this is a shared skill/sop", or right after they correct how a procedure should be done. Also use when asked to add, index, or reference an EXISTING skill in Codex.local.md / AGENTS.md ("add skill X to Codex.local.md", "apply skill X to a repository") — never hand-edit those pointers in.
 ---
 
 # /sop — capture a procedure
