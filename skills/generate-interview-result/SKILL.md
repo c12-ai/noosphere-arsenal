@@ -20,6 +20,10 @@ For the current C12 AI full-stack role, read [`references/current-ai-fullstack-j
 
 Infer facts already present in the sources. Ask only when a missing or ambiguous input would materially change the decision or the write target.
 
+## C12 interview workflow
+
+For Drake's C12 interview preparation or transcript update, read [`references/c12-interview-workflow.md`](references/c12-interview-workflow.md) completely. It defines the default template, question bank, question layout, and transcript-to-document rules. Apply it together with the mode-specific steps below. User-supplied replacements override its defaults.
+
 ## Workflow
 
 ### 1. Read every source before judging
@@ -60,9 +64,11 @@ When the user asks for interview preparation or has not supplied interview evide
 - Prioritize end-to-end ownership, cross-system boundaries and data flow, full-stack implementation, AI-assisted development and verification, and practical evolution judgment for the current default role.
 - Prefer project deep dives, debugging or review scenarios, and a bounded work sample over trivia. Use fundamentals only when they test a role-relevant implementation decision.
 - Calibrate scope by demonstrated experience. For junior candidates, accept runnable and published internship, coursework, or personal projects as valid delivery evidence; do not require large production-system scale.
-- Write the question list into a copied or candidate-specific Feishu document, preserve the template, and label untested dimensions `NT`.
+- Write the question list into a copied or candidate-specific Feishu document. Keep interview records separate from the reserved assessment section. Leave the recommendation, ratings, strengths, risks, and assessment conclusions blank before the interview.
 
-### 4. Choose the recommendation after the interview
+### 4. Record the interview and choose the recommendation
+
+When notes or a transcript arrive, update the same candidate-specific document. First record the actual questions, answers, follow-ups, and coverage status. Then derive the assessment from that record. Keep candidate statements, interviewer statements, and assessment judgments distinct. For C12, use the transcript rules in the workflow reference.
 
 Apply the reference rubric's four-level anchors, evidence hierarchy, coverage rule, and decision rules. Use the template's recommendation labels, mapping them to Strong Hire, Hire, Hold, and No Hire when needed.
 
@@ -72,9 +78,9 @@ Before finalizing, challenge the weakest judgment and the biggest blind spot. If
 
 ### 5. Draft for the template
 
-Follow the template's existing headings, labels, checkbox semantics, and visual style. Preserve bilingual labels when present.
+Follow the template's existing headings, labels, checkbox semantics, and visual style. Preserve bilingual labels when present. For C12, keep the interview record and the separate `面评` section defined in the workflow reference.
 
-Write in this order when the template supports it:
+For post-interview assessment, write in this order within the assessment area when the template supports it:
 
 1. Recommendation callout with a concise reason
 2. Interview basic information
@@ -126,11 +132,12 @@ When creating or updating a candidate-specific Feishu interview document for Dra
 Re-fetch the completed Feishu document and confirm:
 
 - title and candidate name are correct;
-- for interview preparation, no recommendation is selected and the question section is non-empty;
+- for interview preparation, no recommendation is selected, assessment fields are blank, and the question section is non-empty;
+- for C12, every preparation or transcript-update check in the workflow reference passes;
 - for post-interview evaluation, exactly one recommendation is selected and strengths, risks, summary, and decision are non-empty;
-- no sample candidate, `XXX`, `TODO`, or template filler remains;
+- no sample candidate, `XXX`, `TODO`, or template filler remains; intentional blank Q/A and pre-interview assessment fields remain blank;
 - claims remain consistent with the source evidence;
-- the final URL opens the candidate result, not the template; and
+- the final URL opens the candidate result, not the template;
 - the original template is unchanged when a copy was created; and
 - for Drake's workflow, the original resume appears as a file attachment with the correct filename at the end of the candidate document.
 
