@@ -87,6 +87,19 @@ DataGrip 显示 DBMS/Driver 版本本身不是错误，需要读取实际错误�
 7. **边界保持。** 不改 BoostNet / 系统代理（用 `scutil --proxy` 核对），不重启 / 重置 /
    重建现场应用服务，不输入凭据。关闭自己创建的孤立测试页，保留实际浏览器中已恢复的标签页。
 
+2026-11-26 NET-002 补充（"慢"与"白屏"是两类故障，先分清再动手）：
+
+- **连接卡死**（白屏、`ERR_INCOMPLETE_CHUNKED_ENCODING` 等）→ 按第 4 步 break-derp-conns
+  恢复，NET-001 已验证有效。**链路拥塞**（深夜高峰实测丢包 40–50%、吞吐 <1 KB/s）→
+  重置与换 DERP 区域都无效（hkg/tok/sin 当晚实测），不要反复消耗时间重试；等高峰过去
+  再用。assets 是 immutable 1 年缓存：链路好时首开一次即预热缓存，重复打开只付小请求。
+- **配对 relay 跟随 orin 的 home DERP**：`force-prefer-derp` 只在 orin 侧生效（verified：
+  pin 7 → 配对切 tok，pin 3 → 切 sin；Mac 侧 pin 不改变配对路径，第 5 步的 region 26
+  现象由此解释）。测试后必须 region 0 两端清除，orin 侧 home 约 60 s 内自动漂回最近区域。
+- 现场 orin `netcheck` 为 `MappingVariesByDestIP=true`（hard NAT）：网络层面 direct
+  不可达，relay 是唯一路径，与 2026-11-25 保留 relay 的 ruling 一致；不要把 direct
+  当作待修复项。
+
 ## 服务与重置边界
 
 - Agent 的 `MIND_MOCK_MODE` 只决定 Agent 对 Mind 的调用；Device 的 `DEVICE_PROVIDER=fake|mind` 独立决定设备 provider。每次都读取 live config 和运行时状态。

@@ -378,3 +378,40 @@ reconnect, not to an authorized Path B restart.
 - **Final state:** the recovered Helium tab was left open at Keycloak. Temporary isolated test
   tabs were closed; no credentials were submitted. Relay throughput remains variable, so future
   acceptance must reload the actual user browser rather than relying on a one-off CDP pass.
+
+## NET-002: remote Portal slowness diagnosed — peak-hour relay congestion; relay reset and DERP switch both ineffective (2026-11-26, verified)
+
+- **Site / scope:** Drake's Mac（上海家宽）→ Tailscale relay → orin（广州现场），目标
+  `http://192.168.12.150:15173/`。Drake 要求诊断"打开非常慢"的原因并提速。除下列两项
+  获授权的 relay 动作外全部只读。
+- **Server side healthy, nothing to fix on orin (verified):** loopback index 1.9 ms；bundle
+  `/assets/index-gOPQxXTD.js` 原始 3,131,509 B（ETag `W/"6af6b850-2fc975"`），线上响应带
+  `Content-Encoding: gzip` 与 `Cache-Control: max-age=31536000, public, immutable`（repo
+  `BIC-agent-portal/nginx.conf`：gzip on, level 6）。负载 2.26–4.44、125 Gi 内存余 97 Gi，
+  bic-* 容器全部在跑。NET-001 所记"未压缩 bundle"指原始文件大小，线上传输是 gzip 压缩的。
+- **Path facts (verified):** 配对经 DERP(hkg) 中继，direct 从未建立。orin `netcheck`：UDP
+  yes，`MappingVariesByDestIP=true`（hard NAT——网络层面 direct 即不可达，与 2026-11-25
+  保留 relay 的 ruling 一致），最近 DERP：hkg 26.4 ms / sin 62.6 / tok 71.9 / nue 262.9。
+  Mac `netcheck`：UDP yes、mapping varies false（可打洞端），最近 nue 180.5 ms，hkg 探测
+  368.3 ms（探测值被跨境链路抬升）。BoostNet 不在此路径中：`192.168.*` 在系统代理
+  ExceptionsList，路由走 utun13（Tailscale，MTU 1280）；未改也不需要改代理。
+- **Congestion measurement（23:51–00:25，午夜高峰）:** ping 最好 163 ms、最差 1.1–3.2 s，
+  丢包 40–50%；256 KB range 下载每个 60 s 窗口只走 9.8–74.9 KB（≈0.1–1.2 KB/s）；
+  1,489 B 的 index 各次耗时 2.0–24.3 s。
+- **Authorized action 1 — relay reset（Drake 选"立即执行重置"）:** 两端
+  `tailscale debug restun && rebind`，再 `break-derp-conns`。ping 最好回到 182–411 ms，
+  吞吐仍 ≈0.5 KB/s。结论（verified）：NET-001 白屏是**连接卡死**（重置有效）；当晚慢是
+  **链路拥塞**（Mac↔DERP 跨境段在高峰被限流，重置无效）。
+- **Authorized action 2 — DERP region test（Drake：“试试固定到东京或者新加坡”）:**
+  `force-prefer-derp` 在 **orin 侧**才改变配对 relay（verified：pin 7 → tok，pin 3 → sin；
+  Mac 侧 pin 不改变配对路径，NET-001 的 region 26 现象由此解释）。tok：ping 374–416 ms、
+  吞吐 961 B/s；sin：ping 412–464 ms、吞吐 204 B/s（更差）。高峰期换区域救不回吞吐。
+- **Cleanup（verified）:** 两端 `force-prefer-derp 0`（rc=0），配对约 60 s 内自动漂回 hkg。
+  无 pin 残留；未动代理、服务、配置、数据。
+- **Follow-ups:** 尽量避开深夜高峰使用；assets 是 immutable 1 年缓存，链路好时首开一次即
+  预热浏览器缓存（重复打开只付小请求）。App 侧剩余杠杆是 bundle 瘦身（原始 3.13 MB，
+  BIC-agent-portal repo 工作）。Nuremberg 变体当晚未测（超出授权范围）。结构性选项按
+  Drake ruling 排除：direct（2026-11-25，且现场 hard NAT 本就不可达）；大陆自建 relay
+  （onsite→云 egress，2026-10-16）。
+- **Unverified observation:** orin 的 STUN 映射显示一个美国样地址 `173.248.238.155`，
+  而其延迟画像明显是国内；未调查，仅标记。
