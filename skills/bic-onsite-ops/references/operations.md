@@ -60,31 +60,32 @@ DataGrip 显示 DBMS/Driver 版本本身不是错误，需要读取实际错误�
 
 ### Portal remote access over Tailscale (runbook, NET-001 2026-11-25)
 
-远程 Portal 打不开或白屏时按序排查。本次是端点刷新后的功能性恢复，不是直连修复；
-relay 仍慢于 LAN，直连路径不可用时不要宣称修复完成。
+远程 Portal 打不开或白屏时按序排查。Drake 明确保留 **Mac → Tailscale relay → orin**，
+直连不是修复目标。验收必须包含 Drake 实际使用的浏览器；孤立 CDP 成功不能代替它。
 
 1. **先核对端口。** 正确远程地址是 `http://192.168.12.150:15173/`；`.150` 的端口 80
    无监听，`http://192.168.12.150/` 打不开不代表服务故障，也不需要重启任何服务。
-2. **用真实浏览器/CDP 资源证据定位。** 主 JS 报
-   `net::ERR_INCOMPLETE_CHUNKED_ENCODING`、CDP 白屏时，先对比同一资源的现场侧证据：
-   本次 3,131,765-byte 未压缩 bundle 从 onsite loopback 加载仅 0.004535 s，远程却
-   trickled / timed out。容器健康 + 资源本身健康 ⇒ 故障在传输路径；不要为取证或“修复”
-   重启 / 重置 Portal、Agent、Keycloak。
+2. **用实际浏览器与现场侧证据定位。** 本次 Helium 白屏，浏览器 DevTools 同时出现
+   `net::ERR_INCOMPLETE_CHUNKED_ENCODING` 与 `net::ERR_CONNECTION_RESET`；同一
+   3,131,765-byte 未压缩 bundle 从 onsite loopback 加载仅 0.004535 s。容器健康 +
+   资源本身健康 ⇒ 故障在传输路径；不要为取证或“修复”重启 / 重置 Portal、Agent、Keycloak。
 3. **检查 Tailscale 路径状态。** `tailscale status` 看 relay 与 `CurAddr`（本次
    relay=`hkg`、CurAddr 为空）；orin 通告 `192.168.12.0/24` 与 `192.168.12.150/32`，
    Mac 因此把 Portal LAN IP 路由进 Tailscale。现场 `tailscale netcheck` 看 UDP 与
-   `MappingVariesByDestIP`（true = hard NAT，直连难以建立）。绑定 `en0` 的 LAN
-   bypass 本次未验证成功，不要写成可行方案。
-4. **刷新双端端点。** Mac：`tailscale debug restun && tailscale debug rebind`；
-   orin：`sudo tailscale debug restun && sudo tailscale debug rebind`。
+   `MappingVariesByDestIP`。绑定 `en0` 的 LAN bypass 本次未验证成功，不要写成可行方案。
+4. **刷新双端端点与 relay 连接。** Mac：`tailscale debug restun && tailscale debug rebind`；
+   orin：`sudo tailscale debug restun && sudo tailscale debug rebind`。若实际浏览器仍出现
+   relay 传输错误，再断开双端现有 DERP TCP 连接让它重建：Mac
+   `tailscale debug break-derp-conns`；orin `sudo tailscale debug break-derp-conns`。
+   本次最终恢复发生在该 relay 重连后，而不是仅有 STUN/rebind 时。
 5. **清除临时 relay 强制。** 若试过 `tailscale debug force-prefer-derp <region>`，
-   测完必须用 region 0 在两端清除，回到自动选路。最终结论只以清除后的自动选路
-   复测为准；不把强制 relay 写成修复原因（本次最终仍走 `hkg` 且无直连）。
-6. **复测并记录证据。** 完整下载主 JS（记录字节数与耗时，本次 886,744 bytes 压缩
-   JS 用时 28.838507 s）+ 独立 CDP 会话渲染登录页（OIDC discovery、跳转 Keycloak、
-   用户名/密码输入框出现，本次标题 登录到 bic、readyState complete）。
-7. **边界保持。** 全程不改 BoostNet / 系统代理（用 `scutil --proxy` 核对未变），
-   不重启 / 重置 / 重建现场应用服务，不输入凭据，测完关闭测试标签页。
+   测完用 region 0 在两端清除，回到自动选路。本次 region 26 仅作诊断，ping 始终显示
+   `hkg`，不能宣称 Nuremberg 实际生效或是恢复原因；直连也未建立，但不是本任务目标。
+6. **用实际浏览器验收。** reload 实际浏览器标签页，等待 Keycloak 跳转及用户名 / 密码
+   输入框可见。本次 Helium 在 relay 重连后 29.289 s 渲染登录页；孤立 CDP 仅作补充证据。
+   同时记录完整资源下载的字节数与耗时，不把首页 HTTP 200 当成功。
+7. **边界保持。** 不改 BoostNet / 系统代理（用 `scutil --proxy` 核对），不重启 / 重置 /
+   重建现场应用服务，不输入凭据。关闭自己创建的孤立测试页，保留实际浏览器中已恢复的标签页。
 
 ## 服务与重置边界
 

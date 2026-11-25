@@ -20,7 +20,7 @@
 | CC-001 | 2026-09-21 | CC repeat confirmation returns 409 after success | Saved result and Analyze progression verified; second-request trigger unverified | [Operations](operations.md#cc-result-confirmation-popup) |
 | LCMS-004 | 2026-09-22 | 一天内四次黑屏掉线；设备被卡住的 execution 占用或转 `error` | 根因确认为他人登录挤掉会话；Path A 两次、Path B 一次现场验证，桌面与 idle 已验证 | [清除非 idle 设备](lcms-rdp-recovery.md#clear-a-non-idle-device-before-reconnecting) |
 | OPS-004 | 2026-10-01 | aws-test S3 `ListBuckets` startup warnings; local MinIO considered for Agent | Credential valid (only `s3:ListAllMyBuckets` denied); aws-test stays on real Mind + AWS S3 | [Mind / storage sets](operations.md#agent-mind-and-object-storage-configuration-sets) |
-| NET-001 | 2026-11-25 | 远程 Portal 打不开（端口 80 无监听）；改正端口后主 JS 加载 `net::ERR_INCOMPLETE_CHUNKED_ENCODING`，CDP 白屏 | URL 纠正 + 双端 Tailscale 端点刷新后，Portal 登录页已验证渲染；非直连修复 | [Portal 远程访问](operations.md#portal-remote-access-over-tailscale) |
+| NET-001 | 2026-11-25 | 远程 Portal 端口错误及 relay 传输中断；实际 Helium 白屏 | URL 纠正 + 双端 DERP TCP 重连后，实际 Helium 登录页已验证；保留 relay，孤立 CDP 不代替用户浏览器验收 | [Portal 远程访问](operations.md#portal-remote-access-over-tailscale) |
 
 ## LCMS-001：黑屏、SSH 身份与重连误报
 
@@ -345,34 +345,36 @@ reconnect, not to an authorized Path B restart.
   The startup-check code fix is tracked separately. Rules recorded in
   [operations](operations.md#agent-mind-and-object-storage-configuration-sets).
 
-## NET-001: remote Portal blank over Tailscale, recovered by endpoint refresh (2026-11-25, verified)
+## NET-001: remote Portal blank over Tailscale, recovered by relay reconnect (2026-11-25, verified)
 
-- **Site / scope:** orin via `orin-tel`（Tailscale）. Read-only diagnosis and network-layer
-  refresh only; no application restart/reset/recreate, no Portal/Agent/Keycloak configuration
-  change, no BoostNet / system-proxy change（`scutil --proxy` 核对未变）. No credentials entered.
+- **Site / scope:** orin via `orin-tel`（Tailscale）. Drake explicitly chose to keep
+  **Mac → Tailscale relay → orin**; a direct peer path was not the goal. Network-layer refresh
+  only; no application restart/reset/recreate, no Portal/Agent/Keycloak configuration change,
+  no BoostNet / system-proxy change（`scutil --proxy` 核对未变）. No credentials entered.
 - **URL correction:** the original `http://192.168.12.150/` is wrong — port 80 has no listener.
-  The correct remote Portal URL is `http://192.168.12.150:15173/` (the known LAN URL for the
-  same stack, already recorded in operations.md).
+  The correct remote Portal URL is `http://192.168.12.150:15173/`.
 - **Symptom and evidence:** Portal / Agent / Keycloak containers were healthy. CDP rendered
   blank because the main JS failed `net::ERR_INCOMPLETE_CHUNKED_ENCODING`; a forced reload
-  reproduced it. Comparison evidence: the 3,131,765-byte uncompressed bundle loaded from
-  onsite loopback in 0.004535 s, while the remote download trickled / timed out — the asset
-  was healthy and the transfer path was the failure.
+  reproduced it. The 3,131,765-byte uncompressed bundle loaded from onsite loopback in
+  0.004535 s, while the remote download trickled / timed out — the asset was healthy and the
+  transfer path was the failure.
 - **Network findings:** both endpoints online, but Tailscale showed relay `hkg` with
   `CurAddr` empty. Orin advertises `192.168.12.0/24` and `192.168.12.150/32`, so the Mac
-  routes the Portal LAN IP through Tailscale. A direct curl bound to `en0` and
-  SSH `BindInterface=en0` failed — a LAN bypass was NOT verified; do not present one as a
-  fix. Orin `netcheck`: UDP yes, `MappingVariesByDestIP=true` (hard NAT).
-- **Recovery actions:** Mac `tailscale debug restun && tailscale debug rebind`; orin
-  `sudo tailscale debug restun && sudo tailscale debug rebind`. A temporary
-  `tailscale debug force-prefer-derp 26` was also tried on both, then explicitly cleared
-  with region 0 on both. Final success came with normal automatic relay selection, still
-  via `hkg`, and ping still reported no direct connection. Therefore this is a verified
-  functional recovery after endpoint refreshes — NOT a direct-path fix, and NOT proof that
-  region 26 (Nuremberg) was used or caused recovery.
-- **Final verification after clearing the overrides:** compressed Portal JS 886,744 bytes
-  completed in 28.838507 s (~30,748 B/s). An isolated CDP run loaded the Portal JS and OIDC
-  discovery, redirected to Keycloak, and rendered the username/password inputs with title
-  登录到 bic and readyState complete. Test tabs were closed.
-- **Residual limitation:** relay latency/throughput remains slower than LAN; the direct
-  Tailscale path remains unavailable. Do not claim full direct-connection repair.
+  routes the Portal LAN IP through Tailscale. Direct `en0` curl / SSH failed; a LAN bypass was
+  NOT verified. Orin `netcheck`: UDP yes, `MappingVariesByDestIP=true` (hard NAT).
+- **Incomplete first recovery:** Mac `tailscale debug restun && tailscale debug rebind`; orin
+  `sudo tailscale debug restun && sudo tailscale debug rebind`. An isolated CDP session then
+  reached Keycloak, but Drake's actual Helium browser remained blank. This proved that an
+  isolated browser pass is not user-path acceptance and must not be reported as completion.
+- **Actual-browser failure evidence:** a fresh Helium tab stayed blank for 120 s and a hard
+  reload also failed. Its DevTools showed `net::ERR_INCOMPLETE_CHUNKED_ENCODING` and
+  `net::ERR_CONNECTION_RESET`. uBlock reported zero blocked resources.
+- **Final recovery:** with temporary region-26 preference present for diagnosis, break the
+  existing relay TCP connections on both ends: Mac `tailscale debug break-derp-conns`; orin
+  `sudo tailscale debug break-derp-conns`. Reloading the actual Helium tab then rendered the
+  Keycloak heading and username/password inputs in 29.289 s. The preference was cleared with
+  region 0 on both after verification. Ping continued to report `hkg` and no direct path, so
+  Nuremberg usage / causation is unproven and no direct-connection repair is claimed.
+- **Final state:** the recovered Helium tab was left open at Keycloak. Temporary isolated test
+  tabs were closed; no credentials were submitted. Relay throughput remains variable, so future
+  acceptance must reload the actual user browser rather than relying on a one-off CDP pass.
