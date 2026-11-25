@@ -58,6 +58,34 @@ PostgreSQL SSL 协商和密码认证。本次服务器拒绝 PostgreSQL SSL，�
 传输时客户端关闭数据库 SSL 后可进入后续连接步骤；不要把此设置推广到其他服务器。
 DataGrip 显示 DBMS/Driver 版本本身不是错误，需要读取实际错误信息。
 
+### Portal remote access over Tailscale (runbook, NET-001 2026-11-25)
+
+远程 Portal 打不开或白屏时按序排查。本次是端点刷新后的功能性恢复，不是直连修复；
+relay 仍慢于 LAN，直连路径不可用时不要宣称修复完成。
+
+1. **先核对端口。** 正确远程地址是 `http://192.168.12.150:15173/`；`.150` 的端口 80
+   无监听，`http://192.168.12.150/` 打不开不代表服务故障，也不需要重启任何服务。
+2. **用真实浏览器/CDP 资源证据定位。** 主 JS 报
+   `net::ERR_INCOMPLETE_CHUNKED_ENCODING`、CDP 白屏时，先对比同一资源的现场侧证据：
+   本次 3,131,765-byte 未压缩 bundle 从 onsite loopback 加载仅 0.004535 s，远程却
+   trickled / timed out。容器健康 + 资源本身健康 ⇒ 故障在传输路径；不要为取证或“修复”
+   重启 / 重置 Portal、Agent、Keycloak。
+3. **检查 Tailscale 路径状态。** `tailscale status` 看 relay 与 `CurAddr`（本次
+   relay=`hkg`、CurAddr 为空）；orin 通告 `192.168.12.0/24` 与 `192.168.12.150/32`，
+   Mac 因此把 Portal LAN IP 路由进 Tailscale。现场 `tailscale netcheck` 看 UDP 与
+   `MappingVariesByDestIP`（true = hard NAT，直连难以建立）。绑定 `en0` 的 LAN
+   bypass 本次未验证成功，不要写成可行方案。
+4. **刷新双端端点。** Mac：`tailscale debug restun && tailscale debug rebind`；
+   orin：`sudo tailscale debug restun && sudo tailscale debug rebind`。
+5. **清除临时 relay 强制。** 若试过 `tailscale debug force-prefer-derp <region>`，
+   测完必须用 region 0 在两端清除，回到自动选路。最终结论只以清除后的自动选路
+   复测为准；不把强制 relay 写成修复原因（本次最终仍走 `hkg` 且无直连）。
+6. **复测并记录证据。** 完整下载主 JS（记录字节数与耗时，本次 886,744 bytes 压缩
+   JS 用时 28.838507 s）+ 独立 CDP 会话渲染登录页（OIDC discovery、跳转 Keycloak、
+   用户名/密码输入框出现，本次标题 登录到 bic、readyState complete）。
+7. **边界保持。** 全程不改 BoostNet / 系统代理（用 `scutil --proxy` 核对未变），
+   不重启 / 重置 / 重建现场应用服务，不输入凭据，测完关闭测试标签页。
+
 ## 服务与重置边界
 
 - Agent 的 `MIND_MOCK_MODE` 只决定 Agent 对 Mind 的调用；Device 的 `DEVICE_PROVIDER=fake|mind` 独立决定设备 provider。每次都读取 live config 和运行时状态。
