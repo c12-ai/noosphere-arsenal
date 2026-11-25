@@ -425,3 +425,11 @@ reconnect, not to an authorized Path B restart.
   **判断：** 该断流由主动打断老连接后新建连接被 TUN 抓到节点引入，不能归因于「关 TUN」。
   深夜拥塞混淆了 TUN 开/关两组对照，TUN 对这条路径的净影响 **unverified**；不要在
   高峰时段据此给出 TUN 开关建议。白天链路恢复后做同时段、只切 TUN 的 A/B 才能定论。
+- **补测（同夜 00:56–01:00，Drake 授权"现在就测"：TUN 开 + orin pin sin + 两端重建，verified）：**
+  orin `sudo tailscale debug force-prefer-derp 3` + `break-derp-conns`，Mac `break-derp-conns`；
+  ping 确认配对切到 `DERP(sin)`（436–818 ms，个别 4.0 s / 超时）。与同夜「TUN 开 + hkg
+  重建」的 0 B/s 断流不同，**本组合连接能建立**。结果分叉：1,489 B 的 index 三次为
+  0.927 / 2.618 / 1.764 s（同夜基线 2–24 s，曾 60 s 超时），小请求明显变快且稳定；
+  但 512 KB / 128 KB range 下载只有 102 B/s / 736 B/s，大流量仍被限流。**结论：换新加坡
+  中继能修复"连接建立 + 短包延迟"，但修不了 3.13 MB bundle 的大流量瓶颈**，页面仍会
+  卡在加载。测完两端 region 0 清除，配对自动漂回 hkg（ping 末跳 `DERP(hkg)`），无残留。
