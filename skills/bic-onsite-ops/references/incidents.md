@@ -415,3 +415,13 @@ reconnect, not to an authorized Path B restart.
   （onsite→云 egress，2026-10-16）。
 - **Unverified observation:** orin 的 STUN 映射显示一个美国样地址 `173.248.238.155`，
   而其延迟画像明显是国内；未调查，仅标记。
+- **补记（同夜 00:35–00:45，Drake 随后打开 BoostNet TUN 全局模式；混杂证据，因果 unverified）：**
+  上面「BoostNet 不在此路径中」**只成立于仅有系统代理、TUN 未开** 的状态。TUN 打开后
+  `curl --noproxy '*' myip.ipip.net` 显示节点出口 `64.118.140.39`（新加坡），默认路由
+  变为 `utun14`（`198.18.0.1`）；但 Tailscale `netcheck` 的 STUN 观察地址仍是上海联通
+  IP（UDP 探测绕过 TUN），且 hkg 探测延迟 368.3 ms → 183.3 ms。同一拥塞时段吞吐由
+  ~0.7 KB/s 升到 1.4 KB/s（仍不可用）。随后在 TUN 开启状态执行 `break-derp-conns`
+  重建中继连接，出现 0 B/s 完全断流；再断开一次恢复到 154–567 ms / index 22.8 s。
+  **判断：** 该断流由主动打断老连接后新建连接被 TUN 抓到节点引入，不能归因于「关 TUN」。
+  深夜拥塞混淆了 TUN 开/关两组对照，TUN 对这条路径的净影响 **unverified**；不要在
+  高峰时段据此给出 TUN 开关建议。白天链路恢复后做同时段、只切 TUN 的 A/B 才能定论。
