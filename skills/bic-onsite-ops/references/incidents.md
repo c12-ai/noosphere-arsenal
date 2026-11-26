@@ -425,6 +425,22 @@ reconnect, not to an authorized Path B restart.
   **判断：** 该断流由主动打断老连接后新建连接被 TUN 抓到节点引入，不能归因于「关 TUN」。
   深夜拥塞混淆了 TUN 开/关两组对照，TUN 对这条路径的净影响 **unverified**；不要在
   高峰时段据此给出 TUN 开关建议。白天链路恢复后做同时段、只切 TUN 的 A/B 才能定论。
+  **【11-26 更正：上面的「白天链路恢复」预期已被白天复测证伪，见下方条目。】**
+- **更正 unverified 观察（11-26 09:5x，verified）：** orin 侧 `curl myip.ipip.net` 返回
+  `173.248.238.152 中国香港 pccw.com`，即 orin 公网出口是香港 PCCW 线路，不是国内也不是
+  美国；这解释了前述「美国样地址 + 国内延迟画像」的疑点，也解释了 orin `netcheck` 里
+  hkg 最近（26 ms）。orin → hkg DERP `103.6.84.152` 的 1000 B DF ping 为 22–29 ms、
+  0% 丢包，**现场侧链路干净**。
+- **同刻对照（11-26 09:5x–10:0x，verified）：** 1200 B DF ping——A「出海段」Mac →
+  DERP(sin) 服务器 IP `172.237.66.30`（经 TUN，`route get` → utun14）393–474 ms、33% 丢；
+  B「隧道内」Mac → orin Tailscale 虚拟 IP `100.114.189.44`（经 DERP 中继）2495–3744 ms、
+  0% 丢。`route get 192.168.12.150 → utun13`，Portal 流量进 Tailscale 接口而非 BoostNet。
+  **结论：换新加坡节点只改善 A，B 才是瓶颈；且「两端都在新加坡」不成立——DERP(sin) 是
+  Tailscale 官方公共中继，orin 侧完全不经 BoostNet（香港 PCCW 出口）。** 前述归因「跨境
+  链路被限流 / 深夜拥塞」不够准，更正为：orin 侧干净、出海段中等、Tailscale DERP 隧道段
+  抖动最大；TUN 全局 + Tailscale 构成双层隧道，底层丢包使外层/内层 TCP 重传互相放大
+  （TCP-over-TCP），小包可过、大流量退避卡死。此为机理解释，未抓包证明；ping 公网
+  DERP IP 在 TUN 下 ICMP 可能被特殊处理，A 为间接证据、B 为直接证据。
 - **补测（同夜 00:56–01:00，Drake 授权"现在就测"：TUN 开 + orin pin sin + 两端重建，verified）：**
   orin `sudo tailscale debug force-prefer-derp 3` + `break-derp-conns`，Mac `break-derp-conns`；
   ping 确认配对切到 `DERP(sin)`（436–818 ms，个别 4.0 s / 超时）。与同夜「TUN 开 + hkg
