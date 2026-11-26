@@ -453,6 +453,18 @@ reconnect, not to an authorized Path B restart.
   排除 nginx / 应用层。故前述「Tailscale 隧道段是瓶颈」更正为：**隧道段只对
   「新建连接 + 大流量」卡死，小包长连接正常**。这与 bufferbloat / 重传放大一致，
   也解释了敲命令跟手但 `scp` 大文件卡的现象。测试用的转发已按 PID 关闭，无残留。
+- **浏览器实测 + 更正「大流量」归因（11-26，Drake 质疑「3.13MB 算大吗」，verified）：**
+  **Drake 是对的，3.13 MB 不大**：orin loopback 实测原始 `3,131,765 B`、gzip 后线上仅
+  `886,744 B`（0.18 s 发完），index gzip 后 `798 B`。用 CDP 实际打开
+  `http://192.168.12.150:15173/`：`navigate_page` 120 s 超时；页面 `readyState=loading`、
+  body 全空（**白屏截图已确认**）；186 s 时 `readyState=interactive`、body 仍为空。
+  逐资源计时：`env.js` 仅 `377 B` 耗时 **49,697 ms**；`index-*.css` 仅 `76,954 B`
+  耗时 **171,487 ms**；主 bundle `index-gOPQxXTD.js` **一直 pending**，从未开始渲染。
+  **结论更正：瓶颈不是「大流量 / 文件大」，而是每个 HTTP 请求的连接建立 + 首字节
+  被卡几十秒**（77 KB 的 CSS 也要 171 s）。此前「3.13 MB bundle 是大流量瓶颈」、
+  「bufferbloat / TCP-over-TCP 重传放大」等归因均 **不成立 / unverified**，应以本条为准：
+  链路对「新建连接 + 持续传输」都极差，连几百字节的请求都无法在合理时间内完成。
+  bundle 瘦身因此 **不是** 有效解法。CDP 测试页已导航回 about:blank，无残留。
 - **补测（同夜 00:56–01:00，Drake 授权"现在就测"：TUN 开 + orin pin sin + 两端重建，verified）：**
   orin `sudo tailscale debug force-prefer-derp 3` + `break-derp-conns`，Mac `break-derp-conns`；
   ping 确认配对切到 `DERP(sin)`（436–818 ms，个别 4.0 s / 超时）。与同夜「TUN 开 + hkg
