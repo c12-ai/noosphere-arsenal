@@ -465,6 +465,26 @@ reconnect, not to an authorized Path B restart.
   「bufferbloat / TCP-over-TCP 重传放大」等归因均 **不成立 / unverified**，应以本条为准：
   链路对「新建连接 + 持续传输」都极差，连几百字节的请求都无法在合理时间内完成。
   bundle 瘦身因此 **不是** 有效解法。CDP 测试页已导航回 about:blank，无残留。
+- **下午追查 + 根因定位（11-26 14:31–14:38，verified）：**
+  1. **tailscaled 的 DERP 传输走 IPv6 直连、完全绕开 BoostNet**：重建后 socket 为
+     `2408:820c:8f4b:2.<port> → 2403:2500:8000:1.<x>:443`（源 = 联通 IPv6 全局地址，
+     目标 = hkg DERP 的 IPv6）。BoostNet TUN 只抓 IPv4，IPv6 全部逃逸直连出海。
+  2. **BoostNet 出口本身极快（对照，排除用户侧线路问题）**：经 `127.0.0.1:7897` 代理，
+     Cloudflare 4 MB 下载 **0.64 s / 6.25 MB/s**；generate_204 RTT 0.16–0.25 s；
+     经代理/经 TUN 的 `DERP /derp/probe` 均 0.27–0.65 s。其上游入口全为国内 IP
+     （211.95.51.13 等）⇒ 国内入口 + 优质国际转发的形态，国际段不占联通公网出口。
+  3. **裸 en0 直连 DERP 探测（模拟 tailscaled，`curl --interface en0`）**：total
+     2.3–4.8 s、tls 0.75–4.4 s，明显差于代理路径。
+  4. **同一窗口小包与大流量背反（决定性）**：14:36–14:38 ping RTT **162–251 ms** 良好，
+     同窗口 bundle 全量仍 **409–523 B/s**；S4 单条 keep-alive 连接上 1,489 B 请求
+     ttfb **1.5–7.6 s**。浏览器复测：env.js（377 B）再次 **49.8 s**（上午 49.7 s，
+     几乎复现——TCP 重传退避梯子的特征），90 s 后仍白屏、bundle pending。
+  **结论（verified）：瓶颈 = tailscaled 至公共 DERP 的传输运行在联通 IPv6/直连国际
+  出海段，Sustained TTL/ sinful 流被 QoS 化到数百 B/s；小包/控制包可正常通过。**
+  解决方向必须让 DERP 传输进入优质线路：(a) 测试关 Mac IPv6 强制 tailscaled 回退
+  IPv4、由 BoostNet TUN 捕获（系统设置变更，需 Drake 授权，可逆）；(b) 若 tailscaled
+  的 IPv4 socket 也逃逸 TUN（bind-around），需容器化 tailscaled 或 BoostNet v6 路由
+  规则。自建 DERP 置于云端 = Drake 2026-10-16 ruling 排除的 orin→云 egress，不做。
 - **补测（同夜 00:56–01:00，Drake 授权"现在就测"：TUN 开 + orin pin sin + 两端重建，verified）：**
   orin `sudo tailscale debug force-prefer-derp 3` + `break-derp-conns`，Mac `break-derp-conns`；
   ping 确认配对切到 `DERP(sin)`（436–818 ms，个别 4.0 s / 超时）。与同夜「TUN 开 + hkg
