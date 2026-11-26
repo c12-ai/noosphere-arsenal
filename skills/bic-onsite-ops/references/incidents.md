@@ -485,6 +485,25 @@ reconnect, not to an authorized Path B restart.
   IPv4、由 BoostNet TUN 捕获（系统设置变更，需 Drake 授权，可逆）；(b) 若 tailscaled
   的 IPv4 socket 也逃逸 TUN（bind-around），需容器化 tailscaled 或 BoostNet v6 路由
   规则。自建 DERP 置于云端 = Drake 2026-10-16 ruling 排除的 orin→云 egress，不做。
+- **修复尝试：env 代理两步走（11-26 14:52–15:0x，Drake 执行 sudo 命令，verified/进行中）：**
+  官方依据：tailscaled 尊重 `HTTPS_PROXY`/`ALL_PROXY` 环境变量（tailscale.com daemon
+  文档 + issue #7407/#12933，bradfitz 确认 PR #7462 令 DERP 拨号走代理）；CLI 无此
+  flag（`set`/`up`/`debug` 枚举核实），macsys 变体的注入点就是 env 文件
+  `/private/var/root/Library/Containers/io.tailscale.ipn.macsys.network-extension/Data/tailscaled-env.txt`。
+  **Step 1（仅 HTTPS_PROXY=http://127.0.0.1:7897，verified）**：扩展重启后
+  BackendState Running；`break-derp-conns` 后出现相邻端口竞速对（55859 直连 DERP v4 /
+  55864 连代理）——Happy Eyeballs 竞速直连获胜；吞吐 0.3–0.7 → **2.5–2.6 KB/s**
+  （3–8 倍），RTT 稳定 403–452 ms，index 2.0 s。方向有效但数据面仍有直连残腿。
+  **Step 2（追加 TS_BIND_TO_INTERFACE_BY_ROUTE=true，由 tsunderlay 实测支持）**：
+  Drake 执行后扩展重启，BackendState 短暂 Running 吞吐反而波动（2.6 KB/s → 484 B/s，
+  index 16.8 s），仍存在 en0 直连 DERP v4 socket；随后主会话调用
+  `tailscale debug break-tcp-conns` 返回 EOF，扩展 PID 6591 存活但 LocalAPI
+  （127.0.0.1:53105）拒绝连接，`killall Tailscale`（GUI）与 `open -a Tailscale`
+  均未能拉起后端（>90 s down）。**教训（verified）：macsys 扩展上 `debug
+  break-tcp-conns` 可致扩展卡死且 GUI 重启不自愈；唯一恢复路径 =
+  `sudo killall io.tailscale.ipn.macsys.network-extension`（系统自动重启扩展）。
+  诊断时只用 break-derp-conns，勿用 break-tcp-conns。** Step 2 效果待扩展恢复后
+  验收；若无效移除两行 env 回退原状。
 - **补测（同夜 00:56–01:00，Drake 授权"现在就测"：TUN 开 + orin pin sin + 两端重建，verified）：**
   orin `sudo tailscale debug force-prefer-derp 3` + `break-derp-conns`，Mac `break-derp-conns`；
   ping 确认配对切到 `DERP(sin)`（436–818 ms，个别 4.0 s / 超时）。与同夜「TUN 开 + hkg
