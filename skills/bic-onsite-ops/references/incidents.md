@@ -441,6 +441,18 @@ reconnect, not to an authorized Path B restart.
   抖动最大；TUN 全局 + Tailscale 构成双层隧道，底层丢包使外层/内层 TCP 重传互相放大
   （TCP-over-TCP），小包可过、大流量退避卡死。此为机理解释，未抓包证明；ping 公网
   DERP IP 在 TUN 下 ICMP 可能被特殊处理，A 为间接证据、B 为直接证据。
+- **SSH 反证（11-26，Drake 提出「SSH 很快」，verified）——结论精确化而非推翻：**
+  `ssh -G orin-tel` 目标 `c12-workstation-fx523t-x.tailf0814c.ts.net`，DNS 解析为
+  `100.114.189.44`；但 `lsof` 显示系统里同时存在两条 SSH：一条 `198.18.0.1 →
+  34.124.203.232:22`（UTUN/BoostNet，whois = Google LLC，**不是 orin**），一条
+  `100.114.13.128 → 100.114.189.44:22`（Tailscale，才是 orin）。体感「快」的交互式
+  SSH 是**已建长连接 + 每次几十字节小包**；Portal 首屏是**新建连接 + 3.13 MB 大流量**，
+  两者负载不同。同窗口实测：新建 SSH `true` 25 s 超时；64 KB / 1 MB 传输 40 s 全超时；
+  用 SSH 本地转发 `127.0.0.1:45173 → orin:15173` 承载 Portal，index 36.55 s、
+  bundle 60 s 仅 77,824 B（1296 B/s），对照直连 300 B/s —— **换封装方式无效**，
+  排除 nginx / 应用层。故前述「Tailscale 隧道段是瓶颈」更正为：**隧道段只对
+  「新建连接 + 大流量」卡死，小包长连接正常**。这与 bufferbloat / 重传放大一致，
+  也解释了敲命令跟手但 `scp` 大文件卡的现象。测试用的转发已按 PID 关闭，无残留。
 - **补测（同夜 00:56–01:00，Drake 授权"现在就测"：TUN 开 + orin pin sin + 两端重建，verified）：**
   orin `sudo tailscale debug force-prefer-derp 3` + `break-derp-conns`，Mac `break-derp-conns`；
   ping 确认配对切到 `DERP(sin)`（436–818 ms，个别 4.0 s / 超时）。与同夜「TUN 开 + hkg
