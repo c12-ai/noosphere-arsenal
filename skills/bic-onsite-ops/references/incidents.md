@@ -433,3 +433,14 @@ reconnect, not to an authorized Path B restart.
   但 512 KB / 128 KB range 下载只有 102 B/s / 736 B/s，大流量仍被限流。**结论：换新加坡
   中继能修复"连接建立 + 短包延迟"，但修不了 3.13 MB bundle 的大流量瓶颈**，页面仍会
   卡在加载。测完两端 region 0 清除，配对自动漂回 hkg（ping 末跳 `DERP(hkg)`），无残留。
+- **白天复测（2026-11-26 09:53，verified）——更正"错峰就好"的错误预期：** 早上链路
+  **没有**自动恢复。ping 144–586 ms；1,489 B index 8.59 s（connect 单独 6.17 s）；完整
+  bundle 120 s 只传 27,835 B（231 B/s）；Python 直连连 HTTP 响应头都拿不到（30 s 超时）。
+  故 NET-002 前述「等高峰过去再用」与 follow-up 中「白天错峰」的建议 **不成立**：限流
+  是持续性的，不是时段性的。
+- **链路特征（同次，verified）：** 到 `100.114.189.44` 的 ICMP 按包长对照——56 B 0% 丢
+  但 RTT 165–1890 ms 剧烈抖动；600 B DF 0% 丢、309–990 ms；1000 B DF 33% 丢；
+  1200 B DF 0% 丢但 RTT **6.9–9.0 s**；1400 B DF `Message too long`（utun13 MTU 1280）。
+  大包不是被丢弃而是被排队数秒 ⇒ bufferbloat / 限速特征，**不是 PMTU 黑洞**（曾假设，
+  已由 1200 B 全部返回证伪）。结论：Mac ↔ 香港 DERP 这段链路本身质量差，且与时段无关；
+  换 DERP 区域、开 TUN、重建连接都只改善短包，改善不了 3.13 MB 主资源的传输。
